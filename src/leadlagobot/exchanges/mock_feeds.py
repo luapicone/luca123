@@ -18,12 +18,22 @@ class MockExchangeFeed:
                 move = random.uniform(-0.002, 0.002)
                 lag_bonus = random.uniform(0.0004, 0.0025) if self.leader_bias else 0
                 self.base_prices[symbol] *= 1 + move + lag_bonus
+                mid = round(self.base_prices[symbol], 6)
+                spread = max(mid * random.uniform(0.0001, 0.0006), 0.000001)
+                bid = mid - spread / 2
+                ask = mid + spread / 2
+                bid_size = random.uniform(50, 5000)
+                ask_size = random.uniform(50, 5000)
 
                 await self.queue.put(
                     TickerSnapshot(
                         exchange=self.exchange,
                         symbol=symbol,
-                        price=round(self.base_prices[symbol], 6),
+                        price=mid,
+                        bid=bid,
+                        ask=ask,
+                        bid_size=bid_size,
+                        ask_size=ask_size,
                         ts=time(),
                     )
                 )

@@ -9,9 +9,11 @@ MVP inicial en **Python** con:
 - ejecución paper
 - comisiones
 - slippage configurable
+- slippage dinámico por profundidad visible
 - posiciones abiertas/cerradas
 - logging de trades
 - feeds reales por websocket para Binance Futures y Bybit Linear
+- top-of-book (`bid/ask`) y tamaños (`bid_size/ask_size`)
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -54,9 +56,9 @@ PYTHONPATH=src python -m leadlagobot.main
 
 ## Próximos pasos
 
-1. agregar order book / profundidad
-2. mejorar modelo de slippage
-3. paper trading con fills más realistas
-4. incorporar filtros por latencia y calidad de convergencia
+1. incorporar filtros por latencia y calidad de convergencia
+2. persistir métricas agregadas por par
+3. paper fills parciales y cancelaciones simuladas
+4. agregar snapshots de order book más profundos
 5. preparar capa de ejecución real separada
 6. dashboard / métricas en vivo

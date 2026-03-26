@@ -15,28 +15,28 @@ async def engine_loop(queue: asyncio.Queue):
 
     while True:
         tick = await queue.get()
-        prices[tick.symbol][tick.exchange] = tick.price
+        prices[tick.symbol][tick.exchange] = tick
 
         if 'binance' not in prices[tick.symbol] or 'bybit' not in prices[tick.symbol]:
             continue
 
-        leader_price = prices[tick.symbol]['binance']
-        follower_price = prices[tick.symbol]['bybit']
-        gap_pct = calculate_gap_pct(leader_price, follower_price)
+        leader_tick = prices[tick.symbol]['binance']
+        follower_tick = prices[tick.symbol]['bybit']
+        gap_pct = calculate_gap_pct(leader_tick.price, follower_tick.price)
 
         if tick.symbol not in executor.open_positions and should_open_trade(gap_pct):
-            position = executor.open_position(tick.symbol, leader_price, follower_price, gap_pct)
+            position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
             if position:
                 print_event(
-                    f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% leader={leader_price:.6f} follower={follower_price:.6f}"
+                    f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% leader={leader_tick.price:.6f} follower_bid={follower_tick.bid:.6f if follower_tick.bid else follower_tick.price:.6f} follower_ask={follower_tick.ask:.6f if follower_tick.ask else follower_tick.price:.6f}"
                 )
 
         elif tick.symbol in executor.open_positions and should_close_trade(gap_pct):
-            trade = executor.close_position(tick.symbol, follower_price, gap_pct)
+            trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
             if trade:
                 log_trade(trade)
                 print_event(
-                    f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
+                    f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
                 )
 
 

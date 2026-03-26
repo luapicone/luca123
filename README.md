@@ -11,7 +11,8 @@ MVP inicial en **Python** con:
 - slippage configurable
 - posiciones abiertas/cerradas
 - logging de trades
-- feeds mock en tiempo real para desarrollar la arquitectura
+- feeds reales por websocket para Binance Futures y Bybit Linear
+- modo `mock` opcional para desarrollo
 
 ## Estructura
 
@@ -46,11 +47,16 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m leadlagobot.main
 ```
 
+### Modo de feed
+
+- `FEED_MODE=live` → websockets reales de Binance y Bybit
+- `FEED_MODE=mock` → simulación local para desarrollo
+
 ## Próximos pasos
 
-1. reemplazar feeds mock por websockets reales de Binance y Bybit
-2. usar pares filtrados por scanner real
-3. agregar order book / profundidad
-4. mejorar modelo de slippage
-5. paper trading con fills más realistas
-6. preparar capa de ejecución real separada
+1. agregar order book / profundidad
+2. mejorar modelo de slippage
+3. paper trading con fills más realistas
+4. incorporar filtros por latencia y calidad de convergencia
+5. preparar capa de ejecución real separada
+6. dashboard / métricas en vivo

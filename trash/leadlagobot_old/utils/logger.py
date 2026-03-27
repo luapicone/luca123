@@ -2,6 +2,8 @@ from pathlib import Path
 from rich.console import Console
 import json
 
+from leadlagobot.utils.atomic_write import atomic_write_text
+
 console = Console()
 LOG_PATH = Path('data/paper_trades.jsonl')
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)

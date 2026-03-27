@@ -66,7 +66,7 @@ def main():
     worst = 0.0
     current_session = None
 
-    logging.info('Tick Vampire v3 block 2 started | dry_run=%s | exchange=%s | symbol=%s', args.dry_run, EXCHANGE, SYMBOL)
+    logging.info('Tick Vampire v3 block 3 started | dry_run=%s | exchange=%s | symbol=%s', args.dry_run, EXCHANGE, SYMBOL)
 
     while True:
         session_name = in_active_session()
@@ -148,11 +148,7 @@ def main():
                 skipped += 1
 
         elif open_trade is not None:
-            if time.time() - open_trade['opened_at'] >= 180:
-                exit_price, reason_exit = simulate_exit(open_trade['direction'], open_trade['entry'], open_trade['tp'], open_trade['sl'], last_price)
-            else:
-                exit_price, reason_exit = simulate_exit(open_trade['direction'], open_trade['entry'], open_trade['tp'], open_trade['sl'], last_price)
-
+            exit_price, reason_exit = simulate_exit(open_trade['direction'], open_trade['entry'], open_trade['tp'], open_trade['sl'], last_price)
             closed = reason_exit in {'TP', 'SL'} or (time.time() - open_trade['opened_at'] >= 180)
             if closed:
                 if open_trade['direction'] == 'LONG':

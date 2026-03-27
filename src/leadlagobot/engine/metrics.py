@@ -4,6 +4,7 @@ import json
 import math
 
 from leadlagobot.config.settings import settings
+from leadlagobot.utils.atomic_write import atomic_write_text
 
 
 class PairMetricsTracker:
@@ -125,11 +126,11 @@ class PairMetricsTracker:
 
     def flush(self):
         serializable = {symbol: values for symbol, values in self.data.items()}
-        self.path.write_text(json.dumps(serializable, indent=2), encoding='utf8')
+        atomic_write_text(self.path, json.dumps(serializable, indent=2), encoding='utf8')
 
         ranking = sorted(
             ({'symbol': symbol, **values} for symbol, values in serializable.items()),
             key=lambda item: item['ranking_score'],
             reverse=True,
         )
-        self.ranking_path.write_text(json.dumps(ranking, indent=2), encoding='utf8')
+        atomic_write_text(self.ranking_path, json.dumps(ranking, indent=2), encoding='utf8')

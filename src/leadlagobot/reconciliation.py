@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 from leadlagobot.models.types import TickerSnapshot
+from leadlagobot.utils.atomic_write import atomic_write_text
 
 
 class ReconciliationStore:
@@ -58,4 +59,4 @@ class ReconciliationStore:
                 ]),
             },
         }
-        self.path.write_text(json.dumps(payload, indent=2), encoding='utf8')
+        atomic_write_text(self.path, json.dumps(payload, indent=2), encoding='utf8')

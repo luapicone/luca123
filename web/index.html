@@ -159,7 +159,7 @@
             <div class="mini"><div class="k">Signal Age</div><div class="v" id="miniAge">0 ms</div></div>
             <div class="mini"><div class="k">Cancel Rate</div><div class="v" id="miniCancelRate">0%</div></div>
           </div>
-          <pre id="status">loading...</pre>
+          <div id="statusSummary" class="mini-grid"></div><pre id="status" style="display:none;">loading...</pre>
         </div>
 
         <div class="panel card">
@@ -223,6 +223,8 @@
 
     const fmt = (n, d=2) => Number(n || 0).toFixed(d);
 
+    function boolBadge(v) { return v ? '<span class="pos">OK</span>' : '<span class="neg">NO</span>'; }
+
     function renderStatus(status) {
       document.getElementById('status').textContent = JSON.stringify(status, null, 2);
       document.getElementById('kpiGap').textContent = `${fmt(status.latest_gap_pct, 4)}%`;
@@ -231,6 +233,22 @@
       document.getElementById('miniQuality').textContent = fmt(status.latest_quality_score, 3);
       document.getElementById('miniAge').textContent = `${fmt(status.latest_signal_age_ms, 0)} ms`;
       document.getElementById('miniCancelRate').textContent = `${fmt((status.cancel_rate || 0) * 100, 1)}%`;
+
+      const html = [
+        ['Tracked', status.tracked_symbol || '-'],
+        ['Top Symbols', (status.top_symbols || []).join(', ') || '-'],
+        ['Risk', boolBadge(status.risk_ok)],
+        ['Margin', boolBadge(status.margin_ok)],
+        ['Rules', boolBadge(status.rules_ok)],
+        ['Daily Realized', `<span class="${(status.daily_realized_pnl||0)>=0?'pos':'neg'}">${fmt(status.daily_realized_pnl)}</span>`],
+        ['Leader', fmt(status.leader_price, 6)],
+        ['Follower', fmt(status.follower_price, 6)],
+        ['Tick Size', fmt(status.tick_size, 6)],
+        ['Qty Step', fmt(status.qty_step, 6)],
+        ['Min Qty', fmt(status.min_qty, 6)],
+        ['Min Notional', fmt(status.min_notional, 2)],
+      ].map(([k,v]) => `<div class="mini"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+      document.getElementById('statusSummary').innerHTML = html;
     }
 
     function renderRanking(rows, filter, topCount, rankFilter) {

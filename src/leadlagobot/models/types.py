@@ -11,6 +11,8 @@ class TickerSnapshot:
     ask: float | None = None
     bid_size: float | None = None
     ask_size: float | None = None
+    bid_levels: list[tuple[float, float]] | None = None
+    ask_levels: list[tuple[float, float]] | None = None
     ts: float = field(default_factory=time)
 
 

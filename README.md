@@ -10,8 +10,9 @@ MVP inicial en **Python** con:
 - comisiones
 - slippage configurable
 - slippage dinámico por profundidad visible
-- parámetro base para modelar varios niveles de profundidad (`DEPTH_LEVELS_ASSUMED`)
-- fills parciales simulados según profundidad visible agregada multi-nivel asumida
+- profundidad multi-nivel inicial por websocket (`depth5` en Binance + `orderbook.1` en Bybit cuando está disponible)
+- parámetro base para ampliar la profundidad efectiva modelada (`DEPTH_LEVELS_ASSUMED`)
+- fills parciales simulados según profundidad visible agregada multi-nivel
 - cancelaciones paper por profundidad insuficiente
 - posiciones abiertas/cerradas
 - logging de trades
@@ -29,6 +30,7 @@ MVP inicial en **Python** con:
 - dashboard web liviano
 - replay / backtest básico sobre logs
 - capa base separada de adapters de ejecución (`PaperExecutionAdapter` / `RealExecutionAdapter`)
+- guard de seguridad para bloquear ejecución real salvo habilitación explícita (`REAL_EXECUTION_ENABLED=true`)
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -106,7 +108,7 @@ PYTHONPATH=src python -m leadlagobot.backtest
 
 ## Próximos pasos
 
-1. reemplazar la profundidad asumida por order book multi-nivel real
+1. subir Bybit a más niveles de order book y unificar profundidad efectiva entre exchanges
 2. conectar `RealExecutionAdapter` a APIs reales con protección fuerte
 3. score de ranking más sofisticado
 4. automatizar rotación/adaptación de universo de pares

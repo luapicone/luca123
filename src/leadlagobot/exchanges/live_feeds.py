@@ -10,8 +10,9 @@ class BinanceTickerFeed:
         self.queue = queue
 
     async def run(self):
-        stream_names = '/'.join(f'{symbol}@bookTicker' for symbol in self.symbols)
+        stream_names = '/'.join(f'{symbol}@bookTicker/{symbol}@depth5@100ms' for symbol in self.symbols)
         url = f'wss://fstream.binance.com/stream?streams={stream_names}'
+        state: dict[str, dict] = {}
 
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(url, heartbeat=20) as ws:
@@ -19,29 +20,39 @@ class BinanceTickerFeed:
                     if msg.type != aiohttp.WSMsgType.TEXT:
                         continue
                     payload = json.loads(msg.data)
+                    stream = payload.get('stream', '')
                     data = payload.get('data', {})
                     symbol = data.get('s')
-                    bid = data.get('b')
-                    ask = data.get('a')
-                    bid_size = data.get('B')
-                    ask_size = data.get('A')
-                    event_ts = data.get('E')
-                    if not symbol or bid is None or ask is None:
+                    if not symbol:
                         continue
-                    bid_f = float(bid)
-                    ask_f = float(ask)
-                    await self.queue.put(
-                        TickerSnapshot(
-                            exchange='binance',
-                            symbol=symbol,
-                            price=(bid_f + ask_f) / 2,
-                            bid=bid_f,
-                            ask=ask_f,
-                            bid_size=float(bid_size or 0),
-                            ask_size=float(ask_size or 0),
-                            ts=(event_ts or 0) / 1000,
+
+                    bucket = state.setdefault(symbol, {})
+                    if '@bookTicker' in stream:
+                        bucket['bid'] = float(data['b'])
+                        bucket['ask'] = float(data['a'])
+                        bucket['bid_size'] = float(data['B'])
+                        bucket['ask_size'] = float(data['A'])
+                        bucket['ts'] = (data.get('E') or 0) / 1000
+                    elif '@depth5' in stream:
+                        bucket['bid_levels'] = [(float(price), float(size)) for price, size in data.get('b', [])]
+                        bucket['ask_levels'] = [(float(price), float(size)) for price, size in data.get('a', [])]
+                        bucket['ts'] = (data.get('E') or 0) / 1000
+
+                    if 'bid' in bucket and 'ask' in bucket:
+                        await self.queue.put(
+                            TickerSnapshot(
+                                exchange='binance',
+                                symbol=symbol,
+                                price=(bucket['bid'] + bucket['ask']) / 2,
+                                bid=bucket['bid'],
+                                ask=bucket['ask'],
+                                bid_size=bucket.get('bid_size'),
+                                ask_size=bucket.get('ask_size'),
+                                bid_levels=bucket.get('bid_levels'),
+                                ask_levels=bucket.get('ask_levels'),
+                                ts=bucket.get('ts', 0),
+                            )
                         )
-                    )
 
 
 class BybitTickerFeed:
@@ -51,7 +62,8 @@ class BybitTickerFeed:
 
     async def run(self):
         url = 'wss://stream.bybit.com/v5/public/linear'
-        topics = [f'tickers.{symbol}' for symbol in self.symbols]
+        topics = [f'tickers.{symbol}' for symbol in self.symbols] + [f'orderbook.1.{symbol}' for symbol in self.symbols]
+        state: dict[str, dict] = {}
 
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(url, heartbeat=20) as ws:
@@ -60,8 +72,14 @@ class BybitTickerFeed:
                     if msg.type != aiohttp.WSMsgType.TEXT:
                         continue
                     payload = json.loads(msg.data)
-                    if payload.get('topic', '').startswith('tickers.'):
-                        symbol = payload['topic'].split('.', 1)[1]
+                    topic = payload.get('topic', '')
+                    if not topic:
+                        continue
+                    parts = topic.split('.')
+                    symbol = parts[-1]
+                    bucket = state.setdefault(symbol, {})
+
+                    if topic.startswith('tickers.'):
                         rows = payload.get('data', {})
                         if isinstance(rows, list):
                             if not rows:
@@ -69,23 +87,30 @@ class BybitTickerFeed:
                             rows = rows[0]
                         bid = rows.get('bid1Price')
                         ask = rows.get('ask1Price')
-                        bid_size = rows.get('bid1Size')
-                        ask_size = rows.get('ask1Size')
-                        mark = rows.get('markPrice') or rows.get('lastPrice')
-                        ts = payload.get('ts', 0) / 1000
-                        if not mark:
-                            continue
-                        bid_f = float(bid) if bid else None
-                        ask_f = float(ask) if ask else None
+                        bucket['bid'] = float(bid) if bid else None
+                        bucket['ask'] = float(ask) if ask else None
+                        bucket['bid_size'] = float(rows.get('bid1Size') or 0)
+                        bucket['ask_size'] = float(rows.get('ask1Size') or 0)
+                        bucket['price'] = float(rows.get('markPrice') or rows.get('lastPrice'))
+                        bucket['ts'] = payload.get('ts', 0) / 1000
+                    elif topic.startswith('orderbook.1.'):
+                        data = payload.get('data', {})
+                        bucket['bid_levels'] = [(float(price), float(size)) for price, size in data.get('b', [])]
+                        bucket['ask_levels'] = [(float(price), float(size)) for price, size in data.get('a', [])]
+                        bucket['ts'] = payload.get('ts', 0) / 1000
+
+                    if 'price' in bucket:
                         await self.queue.put(
                             TickerSnapshot(
                                 exchange='bybit',
                                 symbol=symbol,
-                                price=float(mark),
-                                bid=bid_f,
-                                ask=ask_f,
-                                bid_size=float(bid_size or 0),
-                                ask_size=float(ask_size or 0),
-                                ts=ts,
+                                price=bucket['price'],
+                                bid=bucket.get('bid'),
+                                ask=bucket.get('ask'),
+                                bid_size=bucket.get('bid_size'),
+                                ask_size=bucket.get('ask_size'),
+                                bid_levels=bucket.get('bid_levels'),
+                                ask_levels=bucket.get('ask_levels'),
+                                ts=bucket.get('ts', 0),
                             )
                         )

@@ -8,7 +8,13 @@ class ReconciliationStore:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
-    def write_snapshot(self, open_positions: dict, latest_ticks: dict[str, dict[str, TickerSnapshot]], account_snapshot: dict | None = None):
+    def write_snapshot(
+        self,
+        open_positions: dict,
+        latest_ticks: dict[str, dict[str, TickerSnapshot]],
+        account_snapshot: dict | None = None,
+        execution_snapshot: dict | None = None,
+    ):
         payload = {
             'open_positions': {
                 symbol: {
@@ -35,6 +41,7 @@ class ReconciliationStore:
                 for symbol, exchanges in latest_ticks.items()
             },
             'account_snapshot': account_snapshot or {},
+            'execution_snapshot': execution_snapshot or {},
             'internal_vs_account': {
                 'internal_open_symbols': sorted(list(open_positions.keys())),
                 'binance_account_symbols': sorted([

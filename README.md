@@ -162,6 +162,14 @@ Se agregó un paso más cercano a producción, todavía controlado:
 - reconciliación `internal_vs_account` para comparar posiciones internas vs exchange
 - guard doble para ejecución real (`REAL_EXECUTION_ENABLED` + `REAL_CONFIRM_TOKEN`)
 
+## Bloque 6 incorporado
+
+Se agregó un paso más para acercarse a respuestas reales de ejecución, todavía en dry-run:
+
+- previews de respuesta de orden por exchange en `RealExecutionAdapter`
+- auditoría de payload firmado + respuesta simulada de exchange
+- reconciliación extendida con `execution_snapshot`
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes

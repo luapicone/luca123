@@ -317,12 +317,12 @@
       const topCount = Math.max(5, Math.min(50, Number(document.getElementById('topCount').value || 12)));
 
       const [status, ranking, metrics, history, reconciliation, trades] = await Promise.all([
-        loadJson('../data/status.json', {}),
-        loadJson('../data/pair_ranking.json', []),
-        loadJson('../data/pair_metrics.json', {}),
-        loadJsonLines('../data/status_history.jsonl'),
-        loadJson('../data/reconciliation.json', {}),
-        loadJsonLines('../data/paper_trades.jsonl'),
+        loadJson('/data/status.json', {}),
+        loadJson('/data/pair_ranking.json', []),
+        loadJson('/data/pair_metrics.json', {}),
+        loadJsonLines('/data/status_history.jsonl'),
+        loadJson('/data/reconciliation.json', {}),
+        loadJsonLines('/data/paper_trades.jsonl'),
       ]);
 
       renderStatus(status);

@@ -28,6 +28,8 @@ VOLUME_MIN_RATIO = 0.50
 WEEKLY_WR_MIN = 0.55
 INITIAL_BALANCE = 20.0
 EXCHANGE = 'binanceusdm'
+IGNORE_SESSIONS = True
+
 SESSIONS = [
     {'name': 'Asia', 'start': '00:00', 'end': '03:00', 'frequency_multiplier': 0.70},
     {'name': 'London', 'start': '07:00', 'end': '10:00', 'frequency_multiplier': 1.00},

@@ -27,3 +27,6 @@ python3 tick_vampire_v3/main.py --dry-run
 python3 tick_vampire_v3/make_report.py
 cat tick_vampire_v3_report.txt
 ```
+
+
+Para testing rápido, Tick Vampire v3 viene con `IGNORE_SESSIONS = True` por defecto en `tick_vampire_v3/config.py`, así puede correr a cualquier hora.

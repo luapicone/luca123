@@ -8,7 +8,7 @@ from pathlib import Path
 import ccxt
 
 from tick_vampire_v3.calendar import news_blackout_active
-from tick_vampire_v3.config import EXCHANGE, INITIAL_BALANCE, RSI_PERIOD, SESSIONS, SYMBOL, VOLUME_MA_PERIOD
+from tick_vampire_v3.config import EXCHANGE, IGNORE_SESSIONS, INITIAL_BALANCE, RSI_PERIOD, SESSIONS, SYMBOL, VOLUME_MA_PERIOD
 from tick_vampire_v3.db import init_db, insert_trade
 from tick_vampire_v3.execution import execute_trade
 from tick_vampire_v3.report import format_session_report
@@ -22,6 +22,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 
 
 def in_active_session():
+    if IGNORE_SESSIONS:
+        return 'ALWAYS_ON'
     now = datetime.now(timezone.utc).strftime('%H:%M')
     for session in SESSIONS:
         if session['start'] <= now <= session['end']:

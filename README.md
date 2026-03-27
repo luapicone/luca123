@@ -59,6 +59,14 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m leadlagobot.main
 ```
 
+## Dashboard CLI
+
+En otra terminal:
+
+```bash
+PYTHONPATH=src python -m leadlagobot.dashboard
+```
+
 ### Modo de feed
 
 - `FEED_MODE=live` → websockets reales de Binance y Bybit
@@ -76,8 +84,8 @@ PYTHONPATH=src python -m leadlagobot.main
 ## Próximos pasos
 
 1. agregar snapshots de order book más profundos
-2. dashboard visual sobre `status.json` y rankings
-3. score de ranking más sofisticado
-4. preparar capa de ejecución real separada
-5. automatizar rotación/adaptación de universo de pares
-6. añadir replay/backtest sobre logs históricos
+2. score de ranking más sofisticado
+3. preparar capa de ejecución real separada
+4. automatizar rotación/adaptación de universo de pares
+5. añadir replay/backtest sobre logs históricos
+6. exponer dashboard web liviano

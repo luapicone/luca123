@@ -20,3 +20,10 @@ python3 tick_vampire_v3/main.py --dry-run
 - Solo paper/dry-run por ahora
 - No live real habilitado
 - Validar varios días antes de considerar siguiente paso
+
+## Reporte rápido Tick Vampire v3
+
+```bash
+python3 tick_vampire_v3/make_report.py
+cat tick_vampire_v3_report.txt
+```

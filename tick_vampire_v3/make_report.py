@@ -22,8 +22,8 @@ def main():
     summary = fetch_rows('''
         select
             count(*) as trades,
-            sum(case when pnl >= 0 then 1 else 0 end) as wins,
-            sum(case when pnl < 0 then 1 else 0 end) as losses,
+            coalesce(sum(case when pnl >= 0 then 1 else 0 end), 0) as wins,
+            coalesce(sum(case when pnl < 0 then 1 else 0 end), 0) as losses,
             coalesce(sum(pnl), 0),
             coalesce(avg(pnl), 0),
             coalesce(max(pnl), 0),

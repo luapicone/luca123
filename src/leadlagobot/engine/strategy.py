@@ -30,13 +30,32 @@ def estimate_quality_score(gap_pct: float, signal_age_ms: float, follower_tick: 
     return raw
 
 
-def should_open_trade(gap_pct: float, quality_score: float, signal_age_ms: float) -> bool:
+def estimate_expected_cost_pct(follower_tick: TickerSnapshot, fill_ratio: float) -> float:
+    if not follower_tick.price:
+        return 999.0
+
+    spread_pct = 0.0
+    if follower_tick.bid and follower_tick.ask:
+        spread_pct = ((follower_tick.ask - follower_tick.bid) / follower_tick.price) * 100
+
+    fee_pct = (settings.binance_fee_rate + settings.bybit_fee_rate) * 100
+    slippage_pct = (settings.paper_slippage_bps / 10000) * 100
+    fill_penalty_pct = max(0.0, (1.0 - fill_ratio)) * 0.12
+    return fee_pct + spread_pct + slippage_pct + fill_penalty_pct + settings.expected_net_edge_margin_pct
+
+
+def should_open_trade(gap_pct: float, quality_score: float, signal_age_ms: float, expected_net_edge_pct: float = 0.0) -> bool:
     return (
         gap_pct >= settings.entry_threshold_pct
         and quality_score >= settings.min_quality_score
         and signal_age_ms <= settings.max_signal_age_ms
+        and expected_net_edge_pct > 0
     )
 
 
-def should_close_trade(gap_pct: float) -> bool:
-    return gap_pct <= settings.exit_threshold_pct
+def should_close_trade(gap_pct: float, entry_gap_pct: float | None = None) -> bool:
+    if entry_gap_pct is None:
+        return gap_pct <= settings.exit_threshold_pct
+
+    target_gap = min(settings.exit_threshold_pct, entry_gap_pct * settings.min_exit_capture_ratio)
+    return gap_pct <= target_gap

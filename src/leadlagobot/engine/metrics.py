@@ -1,6 +1,7 @@
 from collections import defaultdict
 from pathlib import Path
 import json
+import math
 
 from leadlagobot.config.settings import settings
 
@@ -42,8 +43,9 @@ class PairMetricsTracker:
     def _recalculate_ranking(self, symbol: str):
         bucket = self.data[symbol]
         win_rate = (bucket['wins'] / bucket['closes']) if bucket['closes'] else 0.0
-        rejection_penalty = (bucket['rejected'] / bucket['signals']) if bucket['signals'] else 0.0
-        cancel_penalty = (bucket['cancelled'] / bucket['signals']) if bucket['signals'] else 0.0
+        rejection_penalty = min((bucket['rejected'] / bucket['signals']) if bucket['signals'] else 0.0, settings.ranking_rejection_penalty_cap)
+        cancel_penalty = min((bucket['cancelled'] / bucket['signals']) if bucket['signals'] else 0.0, settings.ranking_cancel_penalty_cap)
+        signal_confidence = min(1.0, math.log1p(bucket['signals']) / math.log1p(max(settings.ranking_signal_saturation, 2.0)))
         bucket['ranking_score'] = (
             (bucket['net_pnl'] * settings.ranking_weight_net_pnl)
             + (bucket['avg_quality_score'] * settings.ranking_weight_quality)
@@ -52,7 +54,7 @@ class PairMetricsTracker:
             - (bucket['avg_signal_age_ms'] / 1000)
             - (rejection_penalty * 20)
             - (cancel_penalty * 25)
-        )
+        ) * signal_confidence
 
     def register_signal(self, symbol: str, signal_age_ms: float, quality_score: float):
         bucket = self.data[symbol]

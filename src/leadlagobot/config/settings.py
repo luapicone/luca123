@@ -37,6 +37,11 @@ class Settings(BaseModel):
     ranking_weight_quality: float = float(os.getenv('RANKING_WEIGHT_QUALITY', '100.0'))
     ranking_weight_fill: float = float(os.getenv('RANKING_WEIGHT_FILL', '40.0'))
     ranking_weight_win_rate: float = float(os.getenv('RANKING_WEIGHT_WIN_RATE', '25.0'))
+    expected_net_edge_margin_pct: float = float(os.getenv('EXPECTED_NET_EDGE_MARGIN_PCT', '0.04'))
+    min_exit_capture_ratio: float = float(os.getenv('MIN_EXIT_CAPTURE_RATIO', '0.40'))
+    ranking_signal_saturation: float = float(os.getenv('RANKING_SIGNAL_SATURATION', '250.0'))
+    ranking_rejection_penalty_cap: float = float(os.getenv('RANKING_REJECTION_PENALTY_CAP', '0.75'))
+    ranking_cancel_penalty_cap: float = float(os.getenv('RANKING_CANCEL_PENALTY_CAP', '0.75'))
     notional_usd: float = float(os.getenv('NOTIONAL_USD', '750'))
     feed_mode: str = os.getenv('FEED_MODE', 'live').strip().lower()
     symbols: list[str] = [item.strip().upper() for item in os.getenv('SYMBOLS', 'BRUSDT,LYNUSDT,JCTUSDT').split(',') if item.strip()]

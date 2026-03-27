@@ -194,6 +194,16 @@ Para generar un reporte resumido compartible por Discord: `python3 scripts/make_
 - `MAX_CANCEL_RATE=0.95`
 - universo sugerido sin `BRUSDT` ni `BEATUSDT` para esta fase de calibración
 
+## Bloque B incorporado (calibración de lógica)
+
+Se agregó una mejora de lógica basada en reportes reales de paper trading:
+
+- filtro de `expected_net_edge_pct` antes de abrir trades
+- estimación explícita de costo esperado (`expected_cost_pct`) en `status.json`
+- salida más racional usando captura mínima relativa al gap de entrada
+- ranking menos secuestrable por símbolos con volumen masivo de señales
+- nuevos parámetros de lógica: `EXPECTED_NET_EDGE_MARGIN_PCT`, `MIN_EXIT_CAPTURE_RATIO`, `RANKING_SIGNAL_SATURATION`, `RANKING_REJECTION_PENALTY_CAP`, `RANKING_CANCEL_PENALTY_CAP`
+
 ## Bloque 8 incorporado
 
 Se agregó un subbloque seguro previo a activación real:

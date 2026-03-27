@@ -33,7 +33,7 @@ class PaperExecutor:
         visible_depth_usd = self._effective_depth_usd(size, price, levels)
         if visible_depth_usd <= 0:
             return self._base_slippage_cost(notional)
-        pressure = min(3.0, notional / visible_depth_usd)
+        pressure = min(2.0, notional / visible_depth_usd)
         return self._base_slippage_cost(notional) * pressure
 
     def estimate_fill_ratio(self, notional: float, size: float | None, price: float | None, levels: list[tuple[float, float]] | None = None) -> float:
@@ -42,7 +42,15 @@ class PaperExecutor:
             return 0.0
         return min(1.0, visible_depth_usd / notional)
 
-    def open_position(self, symbol: str, leader_tick: TickerSnapshot, follower_tick: TickerSnapshot, gap_pct: float):
+    def estimate_roundtrip_cost(self, requested_notional: float, entry_tick: TickerSnapshot, exit_tick: TickerSnapshot | None = None, fill_ratio: float = 1.0) -> float:
+        effective_notional = requested_notional * max(fill_ratio, settings.min_fill_ratio)
+        fee_cost = effective_notional * (settings.binance_fee_rate + settings.bybit_fee_rate)
+        entry_slippage = self._depth_penalty(effective_notional, entry_tick.ask_size, entry_tick.ask or entry_tick.price, entry_tick.ask_levels)
+        exit_ref = exit_tick or entry_tick
+        exit_slippage = self._depth_penalty(effective_notional, exit_ref.bid_size, exit_ref.bid or exit_ref.price, exit_ref.bid_levels)
+        return fee_cost + entry_slippage + exit_slippage
+
+    def open_position(self, symbol: str, leader_tick: TickerSnapshot, follower_tick: TickerSnapshot, gap_pct: float, expected_net_edge_pct: float = 0.0):
         if symbol in self.open_positions:
             return None
 
@@ -65,6 +73,7 @@ class PaperExecutor:
             requested_qty=requested_qty,
             fill_ratio=fill_ratio,
             entry_gap_pct=gap_pct,
+            expected_net_edge_pct=expected_net_edge_pct,
         )
         return self.open_positions[symbol]
 
@@ -80,11 +89,13 @@ class PaperExecutor:
             return None
 
         executed_qty = position.qty * close_fill_ratio
-        traded_notional = executed_qty * exit_price
+        entry_notional = executed_qty * position.follower_entry_price
+        exit_notional = executed_qty * exit_price
+        avg_notional = (entry_notional + exit_notional) / 2
         gross_pnl = (leader_tick.price - exit_price) * executed_qty
-        fees = traded_notional * (settings.binance_fee_rate + settings.bybit_fee_rate)
-        open_slippage = self._depth_penalty(traded_notional, follower_tick.ask_size, follower_tick.ask or follower_tick.price, follower_tick.ask_levels)
-        close_slippage = self._depth_penalty(traded_notional, follower_tick.bid_size, follower_tick.bid or follower_tick.price, follower_tick.bid_levels)
+        fees = (entry_notional + exit_notional) * (settings.binance_fee_rate + settings.bybit_fee_rate)
+        open_slippage = self._depth_penalty(entry_notional, position.qty, position.follower_entry_price)
+        close_slippage = self._depth_penalty(exit_notional, follower_tick.bid_size, exit_price, follower_tick.bid_levels)
         slippage_cost = open_slippage + close_slippage
         net_pnl = gross_pnl - fees - slippage_cost
         self.balance += net_pnl

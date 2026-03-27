@@ -29,6 +29,7 @@ class PaperPosition:
     requested_qty: float
     fill_ratio: float
     entry_gap_pct: float
+    expected_net_edge_pct: float = 0.0
     opened_at: float = field(default_factory=time)
 
 

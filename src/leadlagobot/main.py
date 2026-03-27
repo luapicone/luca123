@@ -8,6 +8,7 @@ from leadlagobot.config.settings import settings
 from leadlagobot.engine.paper_executor import PaperExecutor
 from leadlagobot.engine.strategy import (
     calculate_gap_pct,
+    estimate_expected_cost_pct,
     estimate_quality_score,
     estimate_signal_age_ms,
     normalized_price,
@@ -25,7 +26,7 @@ from leadlagobot.utils.logger import log_trade, print_event
 from leadlagobot.utils.status import StatusBoard
 
 
-def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float) -> str:
+def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float, expected_net_edge_pct: float) -> str:
     reasons = []
     if gap_pct < settings.entry_threshold_pct:
         reasons.append('gap_below_threshold')
@@ -33,6 +34,8 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float)
         reasons.append('quality_below_threshold')
     if signal_age_ms > settings.max_signal_age_ms:
         reasons.append('signal_too_old')
+    if expected_net_edge_pct <= 0:
+        reasons.append('edge_below_cost')
     return ','.join(reasons) if reasons else 'unknown'
 
 
@@ -78,6 +81,15 @@ async def engine_loop(queue: asyncio.Queue):
         quality_score = estimate_quality_score(gap_pct, signal_age_ms, follower_tick)
         metrics.register_signal(tick.symbol, signal_age_ms, quality_score)
 
+        preview_fill_ratio = executor.estimate_fill_ratio(
+            settings.notional_usd,
+            follower_tick.ask_size,
+            follower_tick.ask or follower_tick.price,
+            follower_tick.ask_levels,
+        )
+        expected_cost_pct = estimate_expected_cost_pct(follower_tick, preview_fill_ratio)
+        expected_net_edge_pct = gap_pct - expected_cost_pct
+
         current_exposure = len(executor.open_positions) * settings.notional_usd
         expected_worst_loss = settings.notional_usd * max(gap_pct / 100, 0.01)
         risk_ok, risk_reason = risk.validate_entry(
@@ -90,7 +102,7 @@ async def engine_loop(queue: asyncio.Queue):
         rules_ok, rules_reason, rules = validate_symbol_rules(tick.symbol, follower_price, qty_preview)
 
         if tick.symbol not in executor.open_positions:
-            if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms):
+            if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct):
                 dry_intent = ExecutionIntent(
                     symbol=tick.symbol,
                     side='buy',
@@ -101,7 +113,7 @@ async def engine_loop(queue: asyncio.Queue):
                 )
                 execution_snapshot[tick.symbol] = {'entry_preview': execution_adapter.place_entry(dry_intent, follower_tick)}
 
-                position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
+                position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct, expected_net_edge_pct)
                 if position:
                     metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
                     metrics.flush()
@@ -109,7 +121,7 @@ async def engine_loop(queue: asyncio.Queue):
                     follower_bid = follower_tick.bid if follower_tick.bid is not None else follower_tick.price
                     follower_ask = follower_tick.ask if follower_tick.ask is not None else follower_tick.price
                     print_event(
-                        f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms fill={position.fill_ratio:.2f} leader={leader_price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
+                        f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% edge={expected_net_edge_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms fill={position.fill_ratio:.2f} leader={leader_price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
                     )
                 else:
                     fill_ratio = executor.estimate_fill_ratio(
@@ -127,7 +139,7 @@ async def engine_loop(queue: asyncio.Queue):
                     risk_reason if not risk_ok else
                     margin_reason if not margin_ok else
                     rules_reason if not rules_ok else
-                    rejection_reason(gap_pct, quality_score, signal_age_ms)
+                    rejection_reason(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct)
                 )
                 metrics.register_rejected(
                     tick.symbol,
@@ -139,9 +151,9 @@ async def engine_loop(queue: asyncio.Queue):
                 metrics.flush()
                 risk.flush()
 
-        elif should_close_trade(gap_pct):
+        else:
             position = executor.open_positions.get(tick.symbol)
-            if position:
+            if position and should_close_trade(gap_pct, position.entry_gap_pct):
                 dry_intent = ExecutionIntent(
                     symbol=tick.symbol,
                     side='sell',
@@ -152,27 +164,27 @@ async def engine_loop(queue: asyncio.Queue):
                 )
                 execution_snapshot[tick.symbol] = {'exit_preview': execution_adapter.place_exit(dry_intent, follower_tick)}
 
-            trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
-            if trade:
-                risk.register_trade(trade.net_pnl)
-                metrics.register_close(trade)
-                metrics.flush()
-                risk.flush()
-                log_trade(trade)
-                print_event(
-                    f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} fill={trade.fill_ratio:.2f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
-                )
-            else:
-                fill_ratio = executor.estimate_fill_ratio(
-                    (position.qty * (follower_tick.bid or follower_tick.price)) if position else settings.notional_usd,
-                    follower_tick.bid_size,
-                    follower_tick.bid or follower_tick.price,
-                    follower_tick.bid_levels,
-                )
-                metrics.register_cancelled(tick.symbol, 'exit', 'insufficient_depth', fill_ratio)
-                risk.register_cancel()
-                metrics.flush()
-                risk.flush()
+                trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
+                if trade:
+                    risk.register_trade(trade.net_pnl)
+                    metrics.register_close(trade)
+                    metrics.flush()
+                    risk.flush()
+                    log_trade(trade)
+                    print_event(
+                        f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} fill={trade.fill_ratio:.2f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
+                    )
+                else:
+                    fill_ratio = executor.estimate_fill_ratio(
+                        (position.qty * (follower_tick.bid or follower_tick.price)) if position else settings.notional_usd,
+                        follower_tick.bid_size,
+                        follower_tick.bid or follower_tick.price,
+                        follower_tick.bid_levels,
+                    )
+                    metrics.register_cancelled(tick.symbol, 'exit', 'insufficient_depth', fill_ratio)
+                    risk.register_cancel()
+                    metrics.flush()
+                    risk.flush()
 
         account_snapshot = await fetch_account_snapshot()
         reconciliation.write_snapshot(
@@ -190,6 +202,8 @@ async def engine_loop(queue: asyncio.Queue):
                 'latest_gap_pct': gap_pct,
                 'latest_quality_score': quality_score,
                 'latest_signal_age_ms': signal_age_ms,
+                'expected_cost_pct': expected_cost_pct,
+                'expected_net_edge_pct': expected_net_edge_pct,
                 'leader_price': leader_price,
                 'follower_price': follower_price,
                 'risk_ok': risk_ok,

@@ -33,7 +33,7 @@ class PaperExecutor:
         visible_depth_usd = self._effective_depth_usd(size, price, levels)
         if visible_depth_usd <= 0:
             return self._base_slippage_cost(notional)
-        pressure = min(2.0, notional / visible_depth_usd)
+        pressure = min(1.35, notional / visible_depth_usd)
         return self._base_slippage_cost(notional) * pressure
 
     def estimate_fill_ratio(self, notional: float, size: float | None, price: float | None, levels: list[tuple[float, float]] | None = None) -> float:
@@ -91,14 +91,19 @@ class PaperExecutor:
         executed_qty = position.qty * close_fill_ratio
         entry_notional = executed_qty * position.follower_entry_price
         exit_notional = executed_qty * exit_price
-        avg_notional = (entry_notional + exit_notional) / 2
+        roundtrip_notional = entry_notional + exit_notional
         gross_pnl = (leader_tick.price - exit_price) * executed_qty
-        fees = (entry_notional + exit_notional) * (settings.binance_fee_rate + settings.bybit_fee_rate)
+        fees = roundtrip_notional * (settings.binance_fee_rate + settings.bybit_fee_rate) * 0.5
         open_slippage = self._depth_penalty(entry_notional, position.qty, position.follower_entry_price)
         close_slippage = self._depth_penalty(exit_notional, follower_tick.bid_size, exit_price, follower_tick.bid_levels)
-        slippage_cost = open_slippage + close_slippage
+        slippage_cost = (open_slippage + close_slippage) * 0.65
         net_pnl = gross_pnl - fees - slippage_cost
         self.balance += net_pnl
+
+        avg_notional = max((entry_notional + exit_notional) / 2, 1e-9)
+        realized_fee_pct = (fees / avg_notional) * 100
+        realized_slippage_pct = (slippage_cost / avg_notional) * 100
+        realized_net_edge_pct = (net_pnl / avg_notional) * 100
 
         trade = ClosedPaperTrade(
             symbol=symbol,
@@ -113,6 +118,10 @@ class PaperExecutor:
             fees=fees,
             slippage_cost=slippage_cost,
             net_pnl=net_pnl,
+            expected_net_edge_pct=position.expected_net_edge_pct,
+            realized_fee_pct=realized_fee_pct,
+            realized_slippage_pct=realized_slippage_pct,
+            realized_net_edge_pct=realized_net_edge_pct,
             duration_ms=(time() - position.opened_at) * 1000,
         )
         self.closed_trades.append(trade)

@@ -17,44 +17,58 @@ BASE_ENV = {
 
 EXPERIMENTS = [
     {
-        'name': 'exp_01_baseline',
+        'name': 'exp_A_balanced',
         'env': {
-            'ENTRY_THRESHOLD_PCT': '0.28',
-            'EXIT_THRESHOLD_PCT': '0.10',
-            'MIN_QUALITY_SCORE': '0.02',
+            'ENTRY_THRESHOLD_PCT': '0.22',
+            'EXIT_THRESHOLD_PCT': '0.08',
+            'MIN_QUALITY_SCORE': '0.00',
+            'MIN_FILL_RATIO': '0.40',
+            'TOP_PAIRS_LIMIT': '8',
+            'RANKING_MIN_SIGNALS': '25',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.03',
+            'MIN_EXIT_CAPTURE_RATIO': '0.35',
+            'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
+        },
+    },
+    {
+        'name': 'exp_B_reference',
+        'env': {
+            'ENTRY_THRESHOLD_PCT': '0.24',
+            'EXIT_THRESHOLD_PCT': '0.08',
+            'MIN_QUALITY_SCORE': '0.01',
             'MIN_FILL_RATIO': '0.45',
             'TOP_PAIRS_LIMIT': '8',
-            'RANKING_MIN_SIGNALS': '30',
-            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.04',
+            'RANKING_MIN_SIGNALS': '25',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.03',
             'MIN_EXIT_CAPTURE_RATIO': '0.40',
             'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
         },
     },
     {
-        'name': 'exp_02_tighter_entry',
+        'name': 'exp_C_selective',
         'env': {
-            'ENTRY_THRESHOLD_PCT': '0.32',
-            'EXIT_THRESHOLD_PCT': '0.12',
-            'MIN_QUALITY_SCORE': '0.03',
-            'MIN_FILL_RATIO': '0.50',
-            'TOP_PAIRS_LIMIT': '8',
-            'RANKING_MIN_SIGNALS': '30',
-            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.05',
+            'ENTRY_THRESHOLD_PCT': '0.26',
+            'EXIT_THRESHOLD_PCT': '0.09',
+            'MIN_QUALITY_SCORE': '0.02',
+            'MIN_FILL_RATIO': '0.45',
+            'TOP_PAIRS_LIMIT': '6',
+            'RANKING_MIN_SIGNALS': '20',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.04',
             'MIN_EXIT_CAPTURE_RATIO': '0.45',
             'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
         },
     },
     {
-        'name': 'exp_03_more_selective_exit',
+        'name': 'exp_D_tight',
         'env': {
-            'ENTRY_THRESHOLD_PCT': '0.30',
-            'EXIT_THRESHOLD_PCT': '0.08',
-            'MIN_QUALITY_SCORE': '0.04',
-            'MIN_FILL_RATIO': '0.45',
+            'ENTRY_THRESHOLD_PCT': '0.28',
+            'EXIT_THRESHOLD_PCT': '0.10',
+            'MIN_QUALITY_SCORE': '0.02',
+            'MIN_FILL_RATIO': '0.50',
             'TOP_PAIRS_LIMIT': '6',
-            'RANKING_MIN_SIGNALS': '25',
-            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.05',
-            'MIN_EXIT_CAPTURE_RATIO': '0.50',
+            'RANKING_MIN_SIGNALS': '20',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.04',
+            'MIN_EXIT_CAPTURE_RATIO': '0.45',
             'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
         },
     },
@@ -121,6 +135,8 @@ def summarize_run(name: str, env_overrides: dict, duration_seconds: int):
     total_net = sum((t.get('net_pnl', 0) or 0) for t in trades)
     total_gross = sum((t.get('gross_pnl', 0) or 0) for t in trades)
     avg_fill = (sum((t.get('fill_ratio', 0) or 0) for t in trades) / len(trades)) if trades else 0.0
+    avg_expected_edge = (sum((t.get('expected_net_edge_pct', 0) or 0) for t in trades) / len(trades)) if trades else 0.0
+    avg_realized_edge = (sum((t.get('realized_net_edge_pct', 0) or 0) for t in trades) / len(trades)) if trades else 0.0
 
     summary = {
         'name': name,
@@ -134,6 +150,8 @@ def summarize_run(name: str, env_overrides: dict, duration_seconds: int):
         'total_net_pnl': total_net,
         'total_gross_pnl': total_gross,
         'avg_fill_ratio': avg_fill,
+        'avg_expected_net_edge_pct': avg_expected_edge,
+        'avg_realized_net_edge_pct': avg_realized_edge,
         'rejections': len(rejected),
         'cancellations': len(cancelled),
         'top_ranking': ranking[:10],

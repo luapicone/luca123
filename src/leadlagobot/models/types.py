@@ -47,4 +47,8 @@ class ClosedPaperTrade:
     fees: float
     slippage_cost: float
     net_pnl: float
+    expected_net_edge_pct: float
+    realized_fee_pct: float
+    realized_slippage_pct: float
+    realized_net_edge_pct: float
     duration_ms: float

@@ -8,11 +8,12 @@ OUT_PATH = ROOT / 'experiment_report.txt'
 
 def score(summary: dict) -> float:
     return (
-        summary.get('total_net_pnl', 0.0) * 10
+        summary.get('total_net_pnl', 0.0) * 12
         + summary.get('win_rate_pct', 0.0)
-        + summary.get('avg_fill_ratio', 0.0) * 25
+        + summary.get('avg_fill_ratio', 0.0) * 20
+        + summary.get('avg_realized_net_edge_pct', 0.0) * 15
         - summary.get('cancellations', 0) * 0.5
-        - summary.get('rejections', 0) * 0.0005
+        - summary.get('rejections', 0) * 0.0003
     )
 
 
@@ -39,6 +40,8 @@ def main():
         lines.append(f"total_net_pnl: {round(item.get('total_net_pnl', 0.0), 6)}")
         lines.append(f"total_gross_pnl: {round(item.get('total_gross_pnl', 0.0), 6)}")
         lines.append(f"avg_fill_ratio: {round(item.get('avg_fill_ratio', 0.0), 6)}")
+        lines.append(f"avg_expected_net_edge_pct: {round(item.get('avg_expected_net_edge_pct', 0.0), 6)}")
+        lines.append(f"avg_realized_net_edge_pct: {round(item.get('avg_realized_net_edge_pct', 0.0), 6)}")
         lines.append(f"rejections: {item.get('rejections')}")
         lines.append(f"cancellations: {item.get('cancellations')}")
         lines.append(f"env: {item.get('env')}")

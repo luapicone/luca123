@@ -97,7 +97,7 @@ PYTHONPATH=src python -m leadlagobot.backtest
 
 ## Runner de experimentos
 
-Para probar varias configuraciones live en tandas secuenciales y comparar resultados:
+Para probar varias configuraciones live en tandas secuenciales y comparar resultados. El runner guarda también métricas de edge esperado vs edge realizado para auditar si el modelo de costos está destruyendo el PnL neto:
 
 ```bash
 EXPERIMENT_DURATION_SECONDS=1800 python3 scripts/run_experiments.py

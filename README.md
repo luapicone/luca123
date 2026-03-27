@@ -153,10 +153,19 @@ Se agregó una base más cercana a producción, todavía protegida:
 - reconciliación extendida con `account_snapshot`
 - payloads firmados preparados y auditados, pero no enviados por defecto
 
+## Bloque 5 incorporado
+
+Se agregó un paso más cercano a producción, todavía controlado:
+
+- consultas reales de solo lectura para balance/posiciones si hay credenciales
+- snapshot de cuenta enriquecido en `status.json`
+- reconciliación `internal_vs_account` para comparar posiciones internas vs exchange
+- guard doble para ejecución real (`REAL_EXECUTION_ENABLED` + `REAL_CONFIRM_TOKEN`)
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes
-2. sincronizar balances/posiciones reales por API con respuestas reales
+2. endurecer reconciliación con respuestas reales de órdenes
 3. automatizar rotación/adaptación de universo de pares
 4. añadir replay/backtest sobre logs históricos más ricos
 5. exponer dashboard web con charts más avanzados

@@ -35,5 +35,14 @@ class ReconciliationStore:
                 for symbol, exchanges in latest_ticks.items()
             },
             'account_snapshot': account_snapshot or {},
+            'internal_vs_account': {
+                'internal_open_symbols': sorted(list(open_positions.keys())),
+                'binance_account_symbols': sorted([
+                    item.get('symbol') for item in (account_snapshot or {}).get('binance', {}).get('positions', []) if item.get('symbol')
+                ]),
+                'bybit_account_symbols': sorted([
+                    item.get('symbol') for item in (account_snapshot or {}).get('bybit', {}).get('positions', []) if item.get('symbol')
+                ]),
+            },
         }
         self.path.write_text(json.dumps(payload, indent=2), encoding='utf8')

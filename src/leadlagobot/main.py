@@ -16,6 +16,17 @@ from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
 from leadlagobot.utils.logger import log_trade, print_event
 
 
+def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float) -> str:
+    reasons = []
+    if gap_pct < settings.entry_threshold_pct:
+        reasons.append('gap_below_threshold')
+    if quality_score < settings.min_quality_score:
+        reasons.append('quality_below_threshold')
+    if signal_age_ms > settings.max_signal_age_ms:
+        reasons.append('signal_too_old')
+    return ','.join(reasons) if reasons else 'unknown'
+
+
 async def engine_loop(queue: asyncio.Queue):
     executor = PaperExecutor()
     metrics = PairMetricsTracker()
@@ -35,18 +46,28 @@ async def engine_loop(queue: asyncio.Queue):
         quality_score = estimate_quality_score(gap_pct, signal_age_ms, follower_tick)
         metrics.register_signal(tick.symbol, signal_age_ms, quality_score)
 
-        if tick.symbol not in executor.open_positions and should_open_trade(gap_pct, quality_score, signal_age_ms):
-            position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
-            if position:
-                metrics.register_open(tick.symbol, gap_pct)
-                metrics.flush()
-                follower_bid = follower_tick.bid if follower_tick.bid is not None else follower_tick.price
-                follower_ask = follower_tick.ask if follower_tick.ask is not None else follower_tick.price
-                print_event(
-                    f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms leader={leader_tick.price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
+        if tick.symbol not in executor.open_positions:
+            if should_open_trade(gap_pct, quality_score, signal_age_ms):
+                position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
+                if position:
+                    metrics.register_open(tick.symbol, gap_pct)
+                    metrics.flush()
+                    follower_bid = follower_tick.bid if follower_tick.bid is not None else follower_tick.price
+                    follower_ask = follower_tick.ask if follower_tick.ask is not None else follower_tick.price
+                    print_event(
+                        f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms leader={leader_tick.price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
+                    )
+            else:
+                metrics.register_rejected(
+                    tick.symbol,
+                    gap_pct,
+                    quality_score,
+                    signal_age_ms,
+                    rejection_reason(gap_pct, quality_score, signal_age_ms),
                 )
+                metrics.flush()
 
-        elif tick.symbol in executor.open_positions and should_close_trade(gap_pct):
+        elif should_close_trade(gap_pct):
             trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
             if trade:
                 metrics.register_close(trade)

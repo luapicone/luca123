@@ -4,15 +4,20 @@ import json
 
 
 class PairMetricsTracker:
-    def __init__(self, path: str = 'data/pair_metrics.json'):
+    def __init__(self, path: str = 'data/pair_metrics.json', rejected_path: str = 'data/rejected_opportunities.jsonl', ranking_path: str = 'data/pair_ranking.json'):
         self.path = Path(path)
+        self.rejected_path = Path(rejected_path)
+        self.ranking_path = Path(ranking_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.rejected_path.parent.mkdir(parents=True, exist_ok=True)
+        self.ranking_path.parent.mkdir(parents=True, exist_ok=True)
         self.data = defaultdict(lambda: {
             'signals': 0,
             'opens': 0,
             'closes': 0,
             'wins': 0,
             'losses': 0,
+            'rejected': 0,
             'gross_pnl': 0.0,
             'net_pnl': 0.0,
             'avg_entry_gap_pct': 0.0,
@@ -20,6 +25,7 @@ class PairMetricsTracker:
             'avg_duration_ms': 0.0,
             'avg_signal_age_ms': 0.0,
             'avg_quality_score': 0.0,
+            'ranking_score': 0.0,
         })
 
     def _update_avg(self, current: float, count: int, new_value: float) -> float:
@@ -27,16 +33,43 @@ class PairMetricsTracker:
             return new_value
         return ((current * (count - 1)) + new_value) / count
 
+    def _recalculate_ranking(self, symbol: str):
+        bucket = self.data[symbol]
+        win_rate = (bucket['wins'] / bucket['closes']) if bucket['closes'] else 0.0
+        rejection_penalty = (bucket['rejected'] / bucket['signals']) if bucket['signals'] else 0.0
+        bucket['ranking_score'] = (
+            bucket['net_pnl']
+            + (bucket['avg_quality_score'] * 100)
+            + (win_rate * 25)
+            - (bucket['avg_signal_age_ms'] / 1000)
+            - (rejection_penalty * 20)
+        )
+
     def register_signal(self, symbol: str, signal_age_ms: float, quality_score: float):
         bucket = self.data[symbol]
         bucket['signals'] += 1
         bucket['avg_signal_age_ms'] = self._update_avg(bucket['avg_signal_age_ms'], bucket['signals'], signal_age_ms)
         bucket['avg_quality_score'] = self._update_avg(bucket['avg_quality_score'], bucket['signals'], quality_score)
+        self._recalculate_ranking(symbol)
+
+    def register_rejected(self, symbol: str, gap_pct: float, quality_score: float, signal_age_ms: float, reason: str):
+        bucket = self.data[symbol]
+        bucket['rejected'] += 1
+        self._recalculate_ranking(symbol)
+        with self.rejected_path.open('a', encoding='utf8') as file:
+            file.write(json.dumps({
+                'symbol': symbol,
+                'gap_pct': gap_pct,
+                'quality_score': quality_score,
+                'signal_age_ms': signal_age_ms,
+                'reason': reason,
+            }) + '\n')
 
     def register_open(self, symbol: str, entry_gap_pct: float):
         bucket = self.data[symbol]
         bucket['opens'] += 1
         bucket['avg_entry_gap_pct'] = self._update_avg(bucket['avg_entry_gap_pct'], bucket['opens'], entry_gap_pct)
+        self._recalculate_ranking(symbol)
 
     def register_close(self, trade):
         bucket = self.data[trade.symbol]
@@ -49,7 +82,15 @@ class PairMetricsTracker:
             bucket['wins'] += 1
         else:
             bucket['losses'] += 1
+        self._recalculate_ranking(trade.symbol)
 
     def flush(self):
         serializable = {symbol: values for symbol, values in self.data.items()}
         self.path.write_text(json.dumps(serializable, indent=2), encoding='utf8')
+
+        ranking = sorted(
+            ({'symbol': symbol, **values} for symbol, values in serializable.items()),
+            key=lambda item: item['ranking_score'],
+            reverse=True,
+        )
+        self.ranking_path.write_text(json.dumps(ranking, indent=2), encoding='utf8')

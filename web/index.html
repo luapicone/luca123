@@ -6,23 +6,41 @@
   <title>LeadLagobot Dashboard</title>
   <style>
     body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }
-    h1, h2 { margin: 0 0 12px; }
+    h1, h2, h3 { margin: 0 0 12px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
     .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .kpi { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 14px; }
+    .kpi .label { color: #94a3b8; font-size: 12px; margin-bottom: 6px; }
+    .kpi .value { font-size: 22px; font-weight: bold; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; border-bottom: 1px solid #334155; text-align: left; font-size: 14px; }
     .muted { color: #94a3b8; }
     input { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #475569; background: #0b1220; color: #e2e8f0; }
     canvas { width: 100%; height: 180px; background: #0b1220; border-radius: 8px; border: 1px solid #334155; }
+    .pos { color: #4ade80; }
+    .neg { color: #f87171; }
+    pre { white-space: pre-wrap; word-break: break-word; }
   </style>
 </head>
 <body>
   <h1>LeadLagobot Web Dashboard</h1>
-  <p class="muted">Lee archivos JSON generados por el bot desde <code>data/</code>.</p>
+  <p class="muted">Paper trading en vivo con métricas, ranking y operaciones recientes.</p>
+
   <div class="card" style="margin-bottom:16px;">
     <h2>Filtros</h2>
     <input id="symbolFilter" placeholder="Filtrar por símbolo..." />
   </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">PnL total</div><div class="value" id="kpiTotalPnl">0.00</div></div>
+    <div class="kpi"><div class="label">Trades</div><div class="value" id="kpiTrades">0</div></div>
+    <div class="kpi"><div class="label">Ganados</div><div class="value" id="kpiWins">0</div></div>
+    <div class="kpi"><div class="label">Perdidos</div><div class="value" id="kpiLosses">0</div></div>
+    <div class="kpi"><div class="label">Último gap</div><div class="value" id="kpiGap">0.0000%</div></div>
+    <div class="kpi"><div class="label">Posiciones abiertas</div><div class="value" id="kpiOpenPositions">0</div></div>
+  </div>
+
   <div class="grid">
     <div class="card">
       <h2>Status</h2>
@@ -33,14 +51,23 @@
       <canvas id="balanceChart" width="600" height="180"></canvas>
     </div>
     <div class="card">
+      <h2>Operaciones abiertas</h2>
+      <table id="openPositions"></table>
+    </div>
+    <div class="card">
+      <h2>Trades recientes</h2>
+      <table id="recentTrades"></table>
+    </div>
+    <div class="card">
       <h2>Top Ranking</h2>
       <table id="ranking"></table>
     </div>
     <div class="card">
-      <h2>Metrics</h2>
+      <h2>Métricas por símbolo</h2>
       <table id="metrics"></table>
     </div>
   </div>
+
   <script>
     async function loadJson(path, fallback) {
       try {
@@ -63,26 +90,49 @@
       }
     }
 
+    function fmt(n, d=2) {
+      return Number(n || 0).toFixed(d);
+    }
+
     function renderStatus(status) {
       document.getElementById('status').textContent = JSON.stringify(status, null, 2);
+      document.getElementById('kpiGap').textContent = `${fmt(status.latest_gap_pct, 4)}%`;
+      document.getElementById('kpiOpenPositions').textContent = (status.open_positions || []).length;
     }
 
     function renderRanking(rows, filter) {
       const table = document.getElementById('ranking');
       const normalized = (filter || '').trim().toUpperCase();
-      const filtered = rows.filter(r => !normalized || (r.symbol || '').includes(normalized)).slice(0, 15);
+      const filtered = rows.filter(r => !normalized || (r.symbol || '').includes(normalized)).slice(0, 12);
       table.innerHTML = '<tr><th>Symbol</th><th>Score</th><th>Net</th><th>Signals</th><th>Fill</th></tr>' +
-        filtered.map(r => `<tr><td>${r.symbol || '-'}</td><td>${(r.ranking_score || 0).toFixed(2)}</td><td>${(r.net_pnl || 0).toFixed(2)}</td><td>${r.signals || 0}</td><td>${(r.avg_fill_ratio || 0).toFixed(2)}</td></tr>`).join('');
+        filtered.map(r => `<tr><td>${r.symbol || '-'}</td><td>${fmt(r.ranking_score)}</td><td class="${(r.net_pnl||0)>=0?'pos':'neg'}">${fmt(r.net_pnl)}</td><td>${r.signals || 0}</td><td>${fmt(r.avg_fill_ratio)}</td></tr>`).join('');
     }
 
     function renderMetrics(metrics, filter) {
       const table = document.getElementById('metrics');
       const normalized = (filter || '').trim().toUpperCase();
-      const rows = Object.entries(metrics)
-        .filter(([symbol]) => !normalized || symbol.includes(normalized))
-        .slice(0, 15);
+      const rows = Object.entries(metrics).filter(([symbol]) => !normalized || symbol.includes(normalized)).slice(0, 12);
       table.innerHTML = '<tr><th>Symbol</th><th>Wins</th><th>Losses</th><th>Rejected</th><th>Cancelled</th><th>Avg ms</th></tr>' +
-        rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${r.wins || 0}</td><td>${r.losses || 0}</td><td>${r.rejected || 0}</td><td>${r.cancelled || 0}</td><td>${(r.avg_signal_age_ms || 0).toFixed(0)}</td></tr>`).join('');
+        rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${r.wins || 0}</td><td>${r.losses || 0}</td><td>${r.rejected || 0}</td><td>${r.cancelled || 0}</td><td>${fmt(r.avg_signal_age_ms, 0)}</td></tr>`).join('');
+    }
+
+    function renderOpenPositions(status, reconciliation) {
+      const table = document.getElementById('openPositions');
+      const positions = reconciliation.open_positions || {};
+      const rows = Object.entries(positions);
+      table.innerHTML = '<tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Fill</th></tr>' +
+        rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${fmt(r.qty, 4)}</td><td>${fmt(r.entry_price, 6)}</td><td>${fmt(r.fill_ratio)}</td></tr>`).join('');
+      if (!rows.length) {
+        table.innerHTML = '<tr><td class="muted">Sin posiciones abiertas</td></tr>';
+      }
+    }
+
+    function renderRecentTrades(trades, filter) {
+      const table = document.getElementById('recentTrades');
+      const normalized = (filter || '').trim().toUpperCase();
+      const filtered = trades.filter(t => !normalized || (t.symbol || '').includes(normalized)).slice(-12).reverse();
+      table.innerHTML = '<tr><th>Symbol</th><th>Net</th><th>Gross</th><th>Dur ms</th><th>Fill</th></tr>' +
+        filtered.map(t => `<tr><td>${t.symbol}</td><td class="${(t.net_pnl||0)>=0?'pos':'neg'}">${fmt(t.net_pnl)}</td><td>${fmt(t.gross_pnl)}</td><td>${fmt(t.duration_ms,0)}</td><td>${fmt(t.fill_ratio)}</td></tr>`).join('');
     }
 
     function renderBalanceChart(history) {
@@ -90,7 +140,7 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (!history.length) return;
-      const last = history.slice(-60);
+      const last = history.slice(-120);
       const values = last.map(x => x.balance || 0);
       const min = Math.min(...values);
       const max = Math.max(...values);
@@ -106,18 +156,34 @@
       ctx.stroke();
     }
 
+    function renderKpis(trades) {
+      const totalPnl = trades.reduce((acc, t) => acc + (t.net_pnl || 0), 0);
+      const wins = trades.filter(t => (t.net_pnl || 0) >= 0).length;
+      const losses = trades.filter(t => (t.net_pnl || 0) < 0).length;
+      document.getElementById('kpiTotalPnl').textContent = fmt(totalPnl);
+      document.getElementById('kpiTotalPnl').className = `value ${totalPnl >= 0 ? 'pos' : 'neg'}`;
+      document.getElementById('kpiTrades').textContent = trades.length;
+      document.getElementById('kpiWins').textContent = wins;
+      document.getElementById('kpiLosses').textContent = losses;
+    }
+
     async function refresh() {
       const filter = document.getElementById('symbolFilter').value;
-      const [status, ranking, metrics, history] = await Promise.all([
+      const [status, ranking, metrics, history, reconciliation, trades] = await Promise.all([
         loadJson('../data/status.json', {}),
         loadJson('../data/pair_ranking.json', []),
         loadJson('../data/pair_metrics.json', {}),
         loadJsonLines('../data/status_history.jsonl'),
+        loadJson('../data/reconciliation.json', {}),
+        loadJsonLines('../data/paper_trades.jsonl'),
       ]);
       renderStatus(status);
       renderRanking(ranking, filter);
       renderMetrics(metrics, filter);
       renderBalanceChart(history);
+      renderOpenPositions(status, reconciliation);
+      renderRecentTrades(trades, filter);
+      renderKpis(trades);
     }
 
     document.getElementById('symbolFilter').addEventListener('input', refresh);

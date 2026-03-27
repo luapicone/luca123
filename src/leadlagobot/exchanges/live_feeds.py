@@ -91,7 +91,9 @@ class BybitTickerFeed:
                         bucket['ask'] = float(ask) if ask else None
                         bucket['bid_size'] = float(rows.get('bid1Size') or 0)
                         bucket['ask_size'] = float(rows.get('ask1Size') or 0)
-                        bucket['price'] = float(rows.get('markPrice') or rows.get('lastPrice'))
+                        price_value = rows.get('markPrice') or rows.get('lastPrice') or rows.get('indexPrice')
+                        if price_value is not None:
+                            bucket['price'] = float(price_value)
                         bucket['ts'] = payload.get('ts', 0) / 1000
                     elif topic.startswith('orderbook.50.'):
                         data = payload.get('data', {})
@@ -99,7 +101,7 @@ class BybitTickerFeed:
                         bucket['ask_levels'] = [(float(price), float(size)) for price, size in data.get('a', [])]
                         bucket['ts'] = payload.get('ts', 0) / 1000
 
-                    if 'price' in bucket:
+                    if bucket.get('price') is not None:
                         await self.queue.put(
                             TickerSnapshot(
                                 exchange='bybit',

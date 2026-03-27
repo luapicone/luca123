@@ -178,6 +178,18 @@ Se integró el preview de ejecución dry-run dentro del loop principal:
 - `execution_snapshot` persistido en `reconciliation.json`
 - preview de entry/exit por símbolo antes de ejecución paper
 
+## Calibración paper trading
+
+Se relajaron los defaults para que el bot explore mejor oportunidades reales en paper:
+
+- `MIN_FILL_RATIO=0.20`
+- `ENTRY_THRESHOLD_PCT=0.10`
+- `MIN_QUALITY_SCORE=-0.05`
+- `MAX_SIGNAL_AGE_MS=5000`
+- `TOP_PAIRS_LIMIT=20`
+- `RANKING_MIN_SIGNALS=200`
+- `MAX_CANCEL_RATE=0.80`
+
 ## Bloque 8 incorporado
 
 Se agregó un subbloque seguro previo a activación real:

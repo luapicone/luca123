@@ -211,8 +211,11 @@ Se agregó una mejora de lógica basada en reportes reales de paper trading:
 - filtro de `expected_net_edge_pct` antes de abrir trades
 - estimación explícita de costo esperado (`expected_cost_pct`) en `status.json`
 - salida más racional usando captura mínima relativa al gap de entrada
+- confirmación simple de reversión antes de entrar
+- mínimo y máximo de hold
+- stop-loss relativo al gap de entrada
 - ranking menos secuestrable por símbolos con volumen masivo de señales
-- nuevos parámetros de lógica: `EXPECTED_NET_EDGE_MARGIN_PCT`, `MIN_EXPECTED_NET_EDGE_PCT`, `MIN_EXIT_CAPTURE_RATIO`, `MAX_CROSS_EXCHANGE_TICK_AGE_MS`, `RANKING_SIGNAL_SATURATION`, `RANKING_REJECTION_PENALTY_CAP`, `RANKING_CANCEL_PENALTY_CAP`
+- nuevos parámetros de lógica: `EXPECTED_NET_EDGE_MARGIN_PCT`, `MIN_EXPECTED_NET_EDGE_PCT`, `ENTRY_CONFIRMATION_DROP_PCT`, `MIN_HOLD_MS`, `MAX_HOLD_MS`, `STOP_LOSS_GAP_MULTIPLIER`, `MIN_EXIT_CAPTURE_RATIO`, `MAX_CROSS_EXCHANGE_TICK_AGE_MS`, `RANKING_SIGNAL_SATURATION`, `RANKING_REJECTION_PENALTY_CAP`, `RANKING_CANCEL_PENALTY_CAP`
 
 ## Bloque 8 incorporado
 

@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from time import time
 
 from leadlagobot.account_sync import fetch_account_snapshot
 from leadlagobot.contracts import validate_symbol_rules, update_rules
@@ -26,7 +27,7 @@ from leadlagobot.utils.logger import log_trade, print_event
 from leadlagobot.utils.status import StatusBoard
 
 
-def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float, expected_net_edge_pct: float) -> str:
+def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float, expected_net_edge_pct: float, previous_gap_pct: float | None) -> str:
     reasons = []
     if gap_pct < settings.entry_threshold_pct:
         reasons.append('gap_below_threshold')
@@ -34,8 +35,10 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float,
         reasons.append('quality_below_threshold')
     if signal_age_ms > settings.max_signal_age_ms:
         reasons.append('signal_too_old')
-    if expected_net_edge_pct <= 0:
+    if expected_net_edge_pct < settings.min_expected_net_edge_pct:
         reasons.append('edge_below_cost')
+    if previous_gap_pct is not None and previous_gap_pct > 0 and gap_pct > previous_gap_pct - settings.entry_confirmation_drop_pct:
+        reasons.append('no_reversion_confirmation')
     return ','.join(reasons) if reasons else 'unknown'
 
 
@@ -59,6 +62,7 @@ async def engine_loop(queue: asyncio.Queue):
     status = StatusBoard()
     prices = defaultdict(dict)
     execution_snapshot = {}
+    gap_history: dict[str, float] = {}
 
     while True:
         tick = await queue.get()
@@ -117,6 +121,9 @@ async def engine_loop(queue: asyncio.Queue):
         leader_price = normalized_price(leader_tick.price, leader_tick)
         follower_price = normalized_price(follower_tick.price, follower_tick)
         gap_pct = calculate_gap_pct(leader_price, follower_price)
+        previous_gap_pct = gap_history.get(tick.symbol)
+        gap_history[tick.symbol] = gap_pct
+
         quality_score = estimate_quality_score(gap_pct, signal_age_ms, follower_tick)
         metrics.register_signal(tick.symbol, signal_age_ms, quality_score)
 
@@ -141,7 +148,7 @@ async def engine_loop(queue: asyncio.Queue):
         rules_ok, rules_reason, rules = validate_symbol_rules(tick.symbol, follower_price, qty_preview)
 
         if tick.symbol not in executor.open_positions:
-            if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct):
+            if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct, previous_gap_pct):
                 dry_intent = ExecutionIntent(
                     symbol=tick.symbol,
                     side='buy',
@@ -154,6 +161,7 @@ async def engine_loop(queue: asyncio.Queue):
 
                 position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct, expected_net_edge_pct)
                 if position:
+                    position.peak_gap_pct = gap_pct
                     metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
                     metrics.flush()
                     risk.flush()
@@ -178,7 +186,7 @@ async def engine_loop(queue: asyncio.Queue):
                     risk_reason if not risk_ok else
                     margin_reason if not margin_ok else
                     rules_reason if not rules_ok else
-                    rejection_reason(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct)
+                    rejection_reason(gap_pct, quality_score, signal_age_ms, expected_net_edge_pct, previous_gap_pct)
                 )
                 metrics.register_rejected(
                     tick.symbol,
@@ -192,7 +200,13 @@ async def engine_loop(queue: asyncio.Queue):
 
         else:
             position = executor.open_positions.get(tick.symbol)
-            if position and should_close_trade(gap_pct, position.entry_gap_pct):
+            if position:
+                position.peak_gap_pct = max(position.peak_gap_pct, gap_pct)
+                held_ms = (time() - position.opened_at) * 1000
+            else:
+                held_ms = 0.0
+
+            if position and should_close_trade(gap_pct, position, held_ms):
                 dry_intent = ExecutionIntent(
                     symbol=tick.symbol,
                     side='sell',
@@ -239,6 +253,7 @@ async def engine_loop(queue: asyncio.Queue):
                 'tracked_symbol': tick.symbol,
                 'top_symbols': sorted(list(metrics.get_top_symbols())),
                 'latest_gap_pct': gap_pct,
+                'previous_gap_pct': previous_gap_pct,
                 'latest_quality_score': quality_score,
                 'latest_signal_age_ms': signal_age_ms,
                 'expected_cost_pct': expected_cost_pct,
@@ -259,6 +274,10 @@ async def engine_loop(queue: asyncio.Queue):
                 'min_notional': rules.min_notional if rules else None,
                 'stale_market_data': False,
                 'max_cross_exchange_tick_age_ms': settings.max_cross_exchange_tick_age_ms,
+                'entry_confirmation_drop_pct': settings.entry_confirmation_drop_pct,
+                'min_hold_ms': settings.min_hold_ms,
+                'max_hold_ms': settings.max_hold_ms,
+                'stop_loss_gap_multiplier': settings.stop_loss_gap_multiplier,
                 'account_snapshot': account_snapshot,
                 'execution_snapshot': execution_snapshot.get(tick.symbol, {}),
             }

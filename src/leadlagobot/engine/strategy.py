@@ -1,5 +1,5 @@
 from leadlagobot.config.settings import settings
-from leadlagobot.models.types import TickerSnapshot
+from leadlagobot.models.types import PaperPosition, TickerSnapshot
 
 
 def normalized_price(price: float, tick: TickerSnapshot) -> float:
@@ -44,18 +44,35 @@ def estimate_expected_cost_pct(follower_tick: TickerSnapshot, fill_ratio: float)
     return fee_pct + spread_pct + slippage_pct + fill_penalty_pct + settings.expected_net_edge_margin_pct
 
 
-def should_open_trade(gap_pct: float, quality_score: float, signal_age_ms: float, expected_net_edge_pct: float = 0.0) -> bool:
+def should_open_trade(
+    gap_pct: float,
+    quality_score: float,
+    signal_age_ms: float,
+    expected_net_edge_pct: float = 0.0,
+    previous_gap_pct: float | None = None,
+) -> bool:
+    confirmation_ok = previous_gap_pct is None or previous_gap_pct <= 0 or (gap_pct <= previous_gap_pct - settings.entry_confirmation_drop_pct)
     return (
         gap_pct >= settings.entry_threshold_pct
         and quality_score >= settings.min_quality_score
         and signal_age_ms <= settings.max_signal_age_ms
         and expected_net_edge_pct >= settings.min_expected_net_edge_pct
+        and confirmation_ok
     )
 
 
-def should_close_trade(gap_pct: float, entry_gap_pct: float | None = None) -> bool:
-    if entry_gap_pct is None:
+def should_close_trade(gap_pct: float, position: PaperPosition | None = None, held_ms: float = 0.0) -> bool:
+    if position is None:
         return gap_pct <= settings.exit_threshold_pct
 
-    target_gap = min(settings.exit_threshold_pct, entry_gap_pct * settings.min_exit_capture_ratio)
+    if held_ms < settings.min_hold_ms:
+        return False
+
+    target_gap = min(settings.exit_threshold_pct, position.entry_gap_pct * settings.min_exit_capture_ratio)
+    stop_gap = position.entry_gap_pct * settings.stop_loss_gap_multiplier
+
+    if gap_pct >= stop_gap:
+        return True
+    if held_ms >= settings.max_hold_ms:
+        return True
     return gap_pct <= target_gap

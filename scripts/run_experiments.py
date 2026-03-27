@@ -17,7 +17,37 @@ BASE_ENV = {
 
 EXPERIMENTS = [
     {
-        'name': 'exp_A_balanced',
+        'name': 'exp_A_open_flow',
+        'env': {
+            'ENTRY_THRESHOLD_PCT': '0.18',
+            'EXIT_THRESHOLD_PCT': '0.07',
+            'MIN_QUALITY_SCORE': '-0.02',
+            'MIN_FILL_RATIO': '0.35',
+            'TOP_PAIRS_LIMIT': '8',
+            'RANKING_MIN_SIGNALS': '20',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.02',
+            'MIN_EXPECTED_NET_EDGE_PCT': '-0.04',
+            'MIN_EXIT_CAPTURE_RATIO': '0.30',
+            'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
+        },
+    },
+    {
+        'name': 'exp_B_soft_edge',
+        'env': {
+            'ENTRY_THRESHOLD_PCT': '0.20',
+            'EXIT_THRESHOLD_PCT': '0.08',
+            'MIN_QUALITY_SCORE': '-0.01',
+            'MIN_FILL_RATIO': '0.40',
+            'TOP_PAIRS_LIMIT': '8',
+            'RANKING_MIN_SIGNALS': '20',
+            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.02',
+            'MIN_EXPECTED_NET_EDGE_PCT': '-0.03',
+            'MIN_EXIT_CAPTURE_RATIO': '0.35',
+            'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
+        },
+    },
+    {
+        'name': 'exp_C_balanced_relaxed',
         'env': {
             'ENTRY_THRESHOLD_PCT': '0.22',
             'EXIT_THRESHOLD_PCT': '0.08',
@@ -26,49 +56,23 @@ EXPERIMENTS = [
             'TOP_PAIRS_LIMIT': '8',
             'RANKING_MIN_SIGNALS': '25',
             'EXPECTED_NET_EDGE_MARGIN_PCT': '0.03',
+            'MIN_EXPECTED_NET_EDGE_PCT': '-0.02',
             'MIN_EXIT_CAPTURE_RATIO': '0.35',
             'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
         },
     },
     {
-        'name': 'exp_B_reference',
+        'name': 'exp_D_guarded',
         'env': {
             'ENTRY_THRESHOLD_PCT': '0.24',
-            'EXIT_THRESHOLD_PCT': '0.08',
+            'EXIT_THRESHOLD_PCT': '0.09',
             'MIN_QUALITY_SCORE': '0.01',
             'MIN_FILL_RATIO': '0.45',
-            'TOP_PAIRS_LIMIT': '8',
+            'TOP_PAIRS_LIMIT': '6',
             'RANKING_MIN_SIGNALS': '25',
             'EXPECTED_NET_EDGE_MARGIN_PCT': '0.03',
+            'MIN_EXPECTED_NET_EDGE_PCT': '-0.01',
             'MIN_EXIT_CAPTURE_RATIO': '0.40',
-            'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
-        },
-    },
-    {
-        'name': 'exp_C_selective',
-        'env': {
-            'ENTRY_THRESHOLD_PCT': '0.26',
-            'EXIT_THRESHOLD_PCT': '0.09',
-            'MIN_QUALITY_SCORE': '0.02',
-            'MIN_FILL_RATIO': '0.45',
-            'TOP_PAIRS_LIMIT': '6',
-            'RANKING_MIN_SIGNALS': '20',
-            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.04',
-            'MIN_EXIT_CAPTURE_RATIO': '0.45',
-            'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
-        },
-    },
-    {
-        'name': 'exp_D_tight',
-        'env': {
-            'ENTRY_THRESHOLD_PCT': '0.28',
-            'EXIT_THRESHOLD_PCT': '0.10',
-            'MIN_QUALITY_SCORE': '0.02',
-            'MIN_FILL_RATIO': '0.50',
-            'TOP_PAIRS_LIMIT': '6',
-            'RANKING_MIN_SIGNALS': '20',
-            'EXPECTED_NET_EDGE_MARGIN_PCT': '0.04',
-            'MIN_EXIT_CAPTURE_RATIO': '0.45',
             'MAX_CROSS_EXCHANGE_TICK_AGE_MS': '3000',
         },
     },
@@ -165,7 +169,7 @@ def main():
     summaries = []
 
     for experiment in EXPERIMENTS:
-        print(f"\\n=== Running {experiment['name']} for {duration_seconds}s ===")
+        print(f"\n=== Running {experiment['name']} for {duration_seconds}s ===")
         reset_data_dir()
         run_env = os.environ.copy()
         run_env.update(BASE_ENV)
@@ -206,7 +210,7 @@ def main():
                 shutil.copy2(src, exp_dir / file_name)
 
     (EXPERIMENTS_DIR / 'summary.json').write_text(json.dumps(summaries, indent=2), encoding='utf8')
-    print(f"\\nExperiment summary written to {EXPERIMENTS_DIR / 'summary.json'}")
+    print(f"\nExperiment summary written to {EXPERIMENTS_DIR / 'summary.json'}")
 
 
 if __name__ == '__main__':

@@ -38,9 +38,9 @@ def estimate_expected_cost_pct(follower_tick: TickerSnapshot, fill_ratio: float)
     if follower_tick.bid and follower_tick.ask:
         spread_pct = ((follower_tick.ask - follower_tick.bid) / follower_tick.price) * 100
 
-    fee_pct = (settings.binance_fee_rate + settings.bybit_fee_rate) * 100
-    slippage_pct = (settings.paper_slippage_bps / 10000) * 100
-    fill_penalty_pct = max(0.0, (1.0 - fill_ratio)) * 0.12
+    fee_pct = (settings.binance_fee_rate + settings.bybit_fee_rate) * 100 * 0.5
+    slippage_pct = (settings.paper_slippage_bps / 10000) * 100 * 0.65
+    fill_penalty_pct = max(0.0, (1.0 - fill_ratio)) * 0.08
     return fee_pct + spread_pct + slippage_pct + fill_penalty_pct + settings.expected_net_edge_margin_pct
 
 
@@ -49,7 +49,7 @@ def should_open_trade(gap_pct: float, quality_score: float, signal_age_ms: float
         gap_pct >= settings.entry_threshold_pct
         and quality_score >= settings.min_quality_score
         and signal_age_ms <= settings.max_signal_age_ms
-        and expected_net_edge_pct > 0
+        and expected_net_edge_pct >= settings.min_expected_net_edge_pct
     )
 
 

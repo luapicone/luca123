@@ -225,6 +225,20 @@ Se agregó un subbloque seguro previo a activación real:
 - chequeo de activación segura (`activation_check.py`)
 - reconciliación extendida con órdenes abiertas del exchange
 
+## Research de señales
+
+Ahora también se guarda un dataset liviano de research en:
+
+- `data/research_signals.jsonl`
+- `data/research_summary.json`
+
+Para resumirlo:
+
+```bash
+python3 scripts/make_research_report.py
+cat research_report.txt
+```
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes

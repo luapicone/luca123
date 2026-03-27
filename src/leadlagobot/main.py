@@ -22,6 +22,7 @@ from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
 from leadlagobot.execution import ExecutionIntent, RealExecutionAdapter
 from leadlagobot.margin import MarginValidator
 from leadlagobot.reconciliation import ReconciliationStore
+from leadlagobot.research import SignalResearchStore
 from leadlagobot.risk import RiskEngine
 from leadlagobot.utils.logger import log_trade, print_event
 from leadlagobot.utils.status import StatusBoard
@@ -59,6 +60,7 @@ async def engine_loop(queue: asyncio.Queue):
     risk = RiskEngine()
     risk.load()
     reconciliation = ReconciliationStore()
+    research = SignalResearchStore()
     status = StatusBoard()
     prices = defaultdict(dict)
     execution_snapshot = {}
@@ -135,6 +137,20 @@ async def engine_loop(queue: asyncio.Queue):
         )
         expected_cost_pct = estimate_expected_cost_pct(follower_tick, preview_fill_ratio)
         expected_net_edge_pct = gap_pct - expected_cost_pct
+
+        research.register(
+            tick.symbol,
+            {
+                'gap_pct': gap_pct,
+                'previous_gap_pct': previous_gap_pct,
+                'quality_score': quality_score,
+                'signal_age_ms': signal_age_ms,
+                'expected_cost_pct': expected_cost_pct,
+                'expected_net_edge_pct': expected_net_edge_pct,
+                'reversion_confirmed': previous_gap_pct is not None and previous_gap_pct > 0 and gap_pct <= previous_gap_pct - settings.entry_confirmation_drop_pct,
+            },
+        )
+        research.flush_summary()
 
         current_exposure = len(executor.open_positions) * settings.notional_usd
         expected_worst_loss = settings.notional_usd * max(gap_pct / 100, 0.01)

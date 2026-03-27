@@ -14,6 +14,7 @@ from leadlagobot.engine.strategy import (
 from leadlagobot.exchanges.live_feeds import BinanceTickerFeed, BybitTickerFeed
 from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
 from leadlagobot.utils.logger import log_trade, print_event
+from leadlagobot.utils.status import StatusBoard
 
 
 def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float) -> str:
@@ -30,6 +31,7 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float)
 async def engine_loop(queue: asyncio.Queue):
     executor = PaperExecutor()
     metrics = PairMetricsTracker()
+    status = StatusBoard()
     prices = defaultdict(dict)
 
     while True:
@@ -37,6 +39,10 @@ async def engine_loop(queue: asyncio.Queue):
         prices[tick.symbol][tick.exchange] = tick
 
         if 'binance' not in prices[tick.symbol] or 'bybit' not in prices[tick.symbol]:
+            continue
+
+        top_symbols = metrics.get_top_symbols()
+        if top_symbols and tick.symbol not in top_symbols and tick.symbol not in executor.open_positions:
             continue
 
         leader_tick = prices[tick.symbol]['binance']
@@ -93,6 +99,18 @@ async def engine_loop(queue: asyncio.Queue):
                 )
                 metrics.register_cancelled(tick.symbol, 'exit', 'insufficient_depth', fill_ratio)
                 metrics.flush()
+
+        status.write(
+            {
+                'balance': executor.balance,
+                'open_positions': list(executor.open_positions.keys()),
+                'tracked_symbol': tick.symbol,
+                'top_symbols': sorted(list(metrics.get_top_symbols())),
+                'latest_gap_pct': gap_pct,
+                'latest_quality_score': quality_score,
+                'latest_signal_age_ms': signal_age_ms,
+            }
+        )
 
 
 async def main():

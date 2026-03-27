@@ -2,6 +2,8 @@ from collections import defaultdict
 from pathlib import Path
 import json
 
+from leadlagobot.config.settings import settings
+
 
 class PairMetricsTracker:
     def __init__(self, path: str = 'data/pair_metrics.json', rejected_path: str = 'data/rejected_opportunities.jsonl', ranking_path: str = 'data/pair_ranking.json', cancelled_path: str = 'data/cancelled_orders.jsonl'):
@@ -106,6 +108,18 @@ class PairMetricsTracker:
         else:
             bucket['losses'] += 1
         self._recalculate_ranking(trade.symbol)
+
+    def get_top_symbols(self) -> set[str]:
+        ranking = sorted(
+            (
+                (symbol, values)
+                for symbol, values in self.data.items()
+                if values['signals'] >= settings.ranking_min_signals
+            ),
+            key=lambda item: item[1]['ranking_score'],
+            reverse=True,
+        )
+        return {symbol for symbol, _ in ranking[: settings.top_pairs_limit]}
 
     def flush(self):
         serializable = {symbol: values for symbol, values in self.data.items()}

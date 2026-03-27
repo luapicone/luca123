@@ -20,8 +20,10 @@ MVP inicial en **Python** con:
 - tracking de edad de señal / latencia relativa
 - métricas persistidas por par en `data/pair_metrics.json`
 - ranking dinámico por par en `data/pair_ranking.json`
+- selección automática de top pares según ranking
 - registro de oportunidades rechazadas en `data/rejected_opportunities.jsonl`
 - registro de órdenes canceladas en `data/cancelled_orders.jsonl`
+- snapshot de estado en vivo en `data/status.json`
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -69,12 +71,13 @@ PYTHONPATH=src python -m leadlagobot.main
 - `data/pair_ranking.json` → ranking dinámico por símbolo
 - `data/rejected_opportunities.jsonl` → oportunidades descartadas y razón
 - `data/cancelled_orders.jsonl` → órdenes canceladas por falta de fill suficiente
+- `data/status.json` → estado vivo del bot
 
 ## Próximos pasos
 
 1. agregar snapshots de order book más profundos
-2. score de ranking más sofisticado
-3. dashboard / métricas en vivo
+2. dashboard visual sobre `status.json` y rankings
+3. score de ranking más sofisticado
 4. preparar capa de ejecución real separada
-5. automatizar selección activa de pares top
+5. automatizar rotación/adaptación de universo de pares
 6. añadir replay/backtest sobre logs históricos

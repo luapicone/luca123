@@ -170,6 +170,14 @@ Se agregó un paso más para acercarse a respuestas reales de ejecución, todav�
 - auditoría de payload firmado + respuesta simulada de exchange
 - reconciliación extendida con `execution_snapshot`
 
+## Bloque 7 incorporado
+
+Se integró el preview de ejecución dry-run dentro del loop principal:
+
+- `execution_snapshot` visible en `status.json`
+- `execution_snapshot` persistido en `reconciliation.json`
+- preview de entry/exit por símbolo antes de ejecución paper
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes

@@ -17,6 +17,7 @@ from leadlagobot.engine.strategy import (
 from leadlagobot.exchange_metadata import fetch_binance_metadata, fetch_bybit_metadata
 from leadlagobot.exchanges.live_feeds import BinanceTickerFeed, BybitTickerFeed
 from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
+from leadlagobot.execution import ExecutionIntent, RealExecutionAdapter
 from leadlagobot.margin import MarginValidator
 from leadlagobot.reconciliation import ReconciliationStore
 from leadlagobot.risk import RiskEngine
@@ -46,6 +47,7 @@ async def bootstrap_metadata():
 
 async def engine_loop(queue: asyncio.Queue):
     executor = PaperExecutor()
+    execution_adapter = RealExecutionAdapter()
     metrics = PairMetricsTracker()
     margin = MarginValidator()
     risk = RiskEngine()
@@ -53,6 +55,7 @@ async def engine_loop(queue: asyncio.Queue):
     reconciliation = ReconciliationStore()
     status = StatusBoard()
     prices = defaultdict(dict)
+    execution_snapshot = {}
 
     while True:
         tick = await queue.get()
@@ -88,6 +91,16 @@ async def engine_loop(queue: asyncio.Queue):
 
         if tick.symbol not in executor.open_positions:
             if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms):
+                dry_intent = ExecutionIntent(
+                    symbol=tick.symbol,
+                    side='buy',
+                    qty=qty_preview,
+                    reference_price=follower_price,
+                    exchange='bybit',
+                    order_type='market',
+                )
+                execution_snapshot[tick.symbol] = {'entry_preview': execution_adapter.place_entry(dry_intent, follower_tick)}
+
                 position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
                 if position:
                     metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
@@ -127,6 +140,18 @@ async def engine_loop(queue: asyncio.Queue):
                 risk.flush()
 
         elif should_close_trade(gap_pct):
+            position = executor.open_positions.get(tick.symbol)
+            if position:
+                dry_intent = ExecutionIntent(
+                    symbol=tick.symbol,
+                    side='sell',
+                    qty=position.qty,
+                    reference_price=follower_price,
+                    exchange='bybit',
+                    order_type='market',
+                )
+                execution_snapshot[tick.symbol] = {'exit_preview': execution_adapter.place_exit(dry_intent, follower_tick)}
+
             trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
             if trade:
                 risk.register_trade(trade.net_pnl)
@@ -138,7 +163,6 @@ async def engine_loop(queue: asyncio.Queue):
                     f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} fill={trade.fill_ratio:.2f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
                 )
             else:
-                position = executor.open_positions.get(tick.symbol)
                 fill_ratio = executor.estimate_fill_ratio(
                     (position.qty * (follower_tick.bid or follower_tick.price)) if position else settings.notional_usd,
                     follower_tick.bid_size,
@@ -151,7 +175,12 @@ async def engine_loop(queue: asyncio.Queue):
                 risk.flush()
 
         account_snapshot = await fetch_account_snapshot()
-        reconciliation.write_snapshot(executor.open_positions, prices, account_snapshot=account_snapshot)
+        reconciliation.write_snapshot(
+            executor.open_positions,
+            prices,
+            account_snapshot=account_snapshot,
+            execution_snapshot=execution_snapshot,
+        )
         status.write(
             {
                 'balance': executor.balance,
@@ -176,6 +205,7 @@ async def engine_loop(queue: asyncio.Queue):
                 'min_qty': rules.min_qty if rules else None,
                 'min_notional': rules.min_notional if rules else None,
                 'account_snapshot': account_snapshot,
+                'execution_snapshot': execution_snapshot.get(tick.symbol, {}),
             }
         )
 

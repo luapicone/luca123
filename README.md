@@ -259,3 +259,13 @@ cat research_report.txt
 4. añadir replay/backtest sobre logs históricos más ricos
 5. exponer dashboard web con charts más avanzados
 6. sumar persistencia histórica de snapshots de mercado
+
+## Tick Vampire v3 (paper-first scaffold)
+
+Se agregó una base modular y segura en `tick_vampire_v3/` para evolucionar a un bot de scalping de futuros en modo paper/dry-run first.
+
+Ejecutar:
+
+```bash
+python3 tick_vampire_v3/main.py --dry-run
+```

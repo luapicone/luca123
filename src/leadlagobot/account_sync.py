@@ -1,24 +1,40 @@
 import aiohttp
 import hashlib
 import hmac
-import json
 import time
 from urllib.parse import urlencode
 from leadlagobot.config.settings import settings
 
 
-async def _binance_account_snapshot(session: aiohttp.ClientSession):
-    ts = int(time.time() * 1000)
-    query = urlencode({'timestamp': ts})
+async def _binance_signed_get(session: aiohttp.ClientSession, path: str, query_dict: dict):
+    ts_query = {**query_dict, 'timestamp': int(time.time() * 1000)}
+    query = urlencode(ts_query)
     signature = hmac.new(settings.binance_api_secret.encode(), query.encode(), hashlib.sha256).hexdigest()
-    account_url = f'https://fapi.binance.com/fapi/v2/account?{query}&signature={signature}'
-    pos_url = f'https://fapi.binance.com/fapi/v2/positionRisk?{query}&signature={signature}'
+    url = f'https://fapi.binance.com{path}?{query}&signature={signature}'
     headers = {'X-MBX-APIKEY': settings.binance_api_key}
+    async with session.get(url, headers=headers) as response:
+        return await response.json()
 
-    async with session.get(account_url, headers=headers) as account_resp:
-        account = await account_resp.json()
-    async with session.get(pos_url, headers=headers) as pos_resp:
-        positions = await pos_resp.json()
+
+async def _bybit_signed_get(session: aiohttp.ClientSession, path: str, query: str):
+    ts = str(int(time.time() * 1000))
+    recv_window = '5000'
+    signature_payload = ts + settings.bybit_api_key + recv_window + query
+    signature = hmac.new(settings.bybit_api_secret.encode(), signature_payload.encode(), hashlib.sha256).hexdigest()
+    headers = {
+        'X-BAPI-API-KEY': settings.bybit_api_key,
+        'X-BAPI-TIMESTAMP': ts,
+        'X-BAPI-RECV-WINDOW': recv_window,
+        'X-BAPI-SIGN': signature,
+    }
+    async with session.get(f'https://api.bybit.com{path}?{query}', headers=headers) as response:
+        return await response.json()
+
+
+async def _binance_account_snapshot(session: aiohttp.ClientSession):
+    account = await _binance_signed_get(session, '/fapi/v2/account', {})
+    positions = await _binance_signed_get(session, '/fapi/v2/positionRisk', {})
+    orders = await _binance_signed_get(session, '/fapi/v1/openOrders', {})
 
     return {
         'status': 'ok',
@@ -33,36 +49,23 @@ async def _binance_account_snapshot(session: aiohttp.ClientSession):
             }
             for item in positions if str(item.get('positionAmt', '0')) not in ('0', '0.0')
         ],
+        'open_orders': [
+            {
+                'symbol': item.get('symbol'),
+                'orderId': item.get('orderId'),
+                'status': item.get('status'),
+                'origQty': item.get('origQty'),
+                'executedQty': item.get('executedQty'),
+            }
+            for item in orders
+        ],
     }
 
 
 async def _bybit_account_snapshot(session: aiohttp.ClientSession):
-    ts = str(int(time.time() * 1000))
-    recv_window = '5000'
-    wallet_query = 'accountType=UNIFIED'
-    wallet_signature_payload = ts + settings.bybit_api_key + recv_window + wallet_query
-    wallet_signature = hmac.new(settings.bybit_api_secret.encode(), wallet_signature_payload.encode(), hashlib.sha256).hexdigest()
-    wallet_headers = {
-        'X-BAPI-API-KEY': settings.bybit_api_key,
-        'X-BAPI-TIMESTAMP': ts,
-        'X-BAPI-RECV-WINDOW': recv_window,
-        'X-BAPI-SIGN': wallet_signature,
-    }
-
-    pos_query = 'category=linear&settleCoin=USDT'
-    pos_signature_payload = ts + settings.bybit_api_key + recv_window + pos_query
-    pos_signature = hmac.new(settings.bybit_api_secret.encode(), pos_signature_payload.encode(), hashlib.sha256).hexdigest()
-    pos_headers = {
-        'X-BAPI-API-KEY': settings.bybit_api_key,
-        'X-BAPI-TIMESTAMP': ts,
-        'X-BAPI-RECV-WINDOW': recv_window,
-        'X-BAPI-SIGN': pos_signature,
-    }
-
-    async with session.get(f'https://api.bybit.com/v5/account/wallet-balance?{wallet_query}', headers=wallet_headers) as wallet_resp:
-        wallet = await wallet_resp.json()
-    async with session.get(f'https://api.bybit.com/v5/position/list?{pos_query}', headers=pos_headers) as pos_resp:
-        positions = await pos_resp.json()
+    wallet = await _bybit_signed_get(session, '/v5/account/wallet-balance', 'accountType=UNIFIED')
+    positions = await _bybit_signed_get(session, '/v5/position/list', 'category=linear&settleCoin=USDT')
+    orders = await _bybit_signed_get(session, '/v5/order/realtime', 'category=linear&settleCoin=USDT')
 
     accounts = wallet.get('result', {}).get('list', [])
     first = accounts[0] if accounts else {}
@@ -81,6 +84,16 @@ async def _bybit_account_snapshot(session: aiohttp.ClientSession):
                 'unrealisedPnl': item.get('unrealisedPnl'),
             }
             for item in positions.get('result', {}).get('list', []) if str(item.get('size', '0')) not in ('0', '0.0', '')
+        ],
+        'open_orders': [
+            {
+                'symbol': item.get('symbol'),
+                'orderId': item.get('orderId'),
+                'orderStatus': item.get('orderStatus'),
+                'qty': item.get('qty'),
+                'cumExecQty': item.get('cumExecQty'),
+            }
+            for item in orders.get('result', {}).get('list', [])
         ],
     }
 

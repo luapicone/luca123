@@ -178,6 +178,14 @@ Se integró el preview de ejecución dry-run dentro del loop principal:
 - `execution_snapshot` persistido en `reconciliation.json`
 - preview de entry/exit por símbolo antes de ejecución paper
 
+## Bloque 8 incorporado
+
+Se agregó un subbloque seguro previo a activación real:
+
+- lectura real de órdenes abiertas por exchange en modo solo lectura
+- chequeo de activación segura (`activation_check.py`)
+- reconciliación extendida con órdenes abiertas del exchange
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes

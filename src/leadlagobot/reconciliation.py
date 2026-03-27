@@ -50,6 +50,12 @@ class ReconciliationStore:
                 'bybit_account_symbols': sorted([
                     item.get('symbol') for item in (account_snapshot or {}).get('bybit', {}).get('positions', []) if item.get('symbol')
                 ]),
+                'binance_open_order_symbols': sorted([
+                    item.get('symbol') for item in (account_snapshot or {}).get('binance', {}).get('open_orders', []) if item.get('symbol')
+                ]),
+                'bybit_open_order_symbols': sorted([
+                    item.get('symbol') for item in (account_snapshot or {}).get('bybit', {}).get('open_orders', []) if item.get('symbol')
+                ]),
             },
         }
         self.path.write_text(json.dumps(payload, indent=2), encoding='utf8')

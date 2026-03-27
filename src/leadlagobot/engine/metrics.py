@@ -4,13 +4,15 @@ import json
 
 
 class PairMetricsTracker:
-    def __init__(self, path: str = 'data/pair_metrics.json', rejected_path: str = 'data/rejected_opportunities.jsonl', ranking_path: str = 'data/pair_ranking.json'):
+    def __init__(self, path: str = 'data/pair_metrics.json', rejected_path: str = 'data/rejected_opportunities.jsonl', ranking_path: str = 'data/pair_ranking.json', cancelled_path: str = 'data/cancelled_orders.jsonl'):
         self.path = Path(path)
         self.rejected_path = Path(rejected_path)
         self.ranking_path = Path(ranking_path)
+        self.cancelled_path = Path(cancelled_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.rejected_path.parent.mkdir(parents=True, exist_ok=True)
         self.ranking_path.parent.mkdir(parents=True, exist_ok=True)
+        self.cancelled_path.parent.mkdir(parents=True, exist_ok=True)
         self.data = defaultdict(lambda: {
             'signals': 0,
             'opens': 0,
@@ -18,6 +20,7 @@ class PairMetricsTracker:
             'wins': 0,
             'losses': 0,
             'rejected': 0,
+            'cancelled': 0,
             'gross_pnl': 0.0,
             'net_pnl': 0.0,
             'avg_entry_gap_pct': 0.0,
@@ -25,6 +28,7 @@ class PairMetricsTracker:
             'avg_duration_ms': 0.0,
             'avg_signal_age_ms': 0.0,
             'avg_quality_score': 0.0,
+            'avg_fill_ratio': 0.0,
             'ranking_score': 0.0,
         })
 
@@ -37,12 +41,15 @@ class PairMetricsTracker:
         bucket = self.data[symbol]
         win_rate = (bucket['wins'] / bucket['closes']) if bucket['closes'] else 0.0
         rejection_penalty = (bucket['rejected'] / bucket['signals']) if bucket['signals'] else 0.0
+        cancel_penalty = (bucket['cancelled'] / bucket['signals']) if bucket['signals'] else 0.0
         bucket['ranking_score'] = (
             bucket['net_pnl']
             + (bucket['avg_quality_score'] * 100)
+            + (bucket['avg_fill_ratio'] * 40)
             + (win_rate * 25)
             - (bucket['avg_signal_age_ms'] / 1000)
             - (rejection_penalty * 20)
+            - (cancel_penalty * 25)
         )
 
     def register_signal(self, symbol: str, signal_age_ms: float, quality_score: float):
@@ -65,10 +72,25 @@ class PairMetricsTracker:
                 'reason': reason,
             }) + '\n')
 
-    def register_open(self, symbol: str, entry_gap_pct: float):
+    def register_cancelled(self, symbol: str, side: str, reason: str, fill_ratio: float):
+        bucket = self.data[symbol]
+        bucket['cancelled'] += 1
+        count = max(bucket['opens'] + bucket['closes'] + bucket['cancelled'], 1)
+        bucket['avg_fill_ratio'] = self._update_avg(bucket['avg_fill_ratio'], count, fill_ratio)
+        self._recalculate_ranking(symbol)
+        with self.cancelled_path.open('a', encoding='utf8') as file:
+            file.write(json.dumps({
+                'symbol': symbol,
+                'side': side,
+                'reason': reason,
+                'fill_ratio': fill_ratio,
+            }) + '\n')
+
+    def register_open(self, symbol: str, entry_gap_pct: float, fill_ratio: float):
         bucket = self.data[symbol]
         bucket['opens'] += 1
         bucket['avg_entry_gap_pct'] = self._update_avg(bucket['avg_entry_gap_pct'], bucket['opens'], entry_gap_pct)
+        bucket['avg_fill_ratio'] = self._update_avg(bucket['avg_fill_ratio'], bucket['opens'], fill_ratio)
         self._recalculate_ranking(symbol)
 
     def register_close(self, trade):
@@ -78,6 +100,7 @@ class PairMetricsTracker:
         bucket['net_pnl'] += trade.net_pnl
         bucket['avg_exit_gap_pct'] = self._update_avg(bucket['avg_exit_gap_pct'], bucket['closes'], trade.exit_gap_pct)
         bucket['avg_duration_ms'] = self._update_avg(bucket['avg_duration_ms'], bucket['closes'], trade.duration_ms)
+        bucket['avg_fill_ratio'] = self._update_avg(bucket['avg_fill_ratio'], bucket['closes'], trade.fill_ratio)
         if trade.net_pnl >= 0:
             bucket['wins'] += 1
         else:

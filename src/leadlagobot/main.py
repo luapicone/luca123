@@ -50,13 +50,21 @@ async def engine_loop(queue: asyncio.Queue):
             if should_open_trade(gap_pct, quality_score, signal_age_ms):
                 position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
                 if position:
-                    metrics.register_open(tick.symbol, gap_pct)
+                    metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
                     metrics.flush()
                     follower_bid = follower_tick.bid if follower_tick.bid is not None else follower_tick.price
                     follower_ask = follower_tick.ask if follower_tick.ask is not None else follower_tick.price
                     print_event(
-                        f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms leader={leader_tick.price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
+                        f"[green]OPEN[/green] {tick.symbol} gap={gap_pct:.4f}% quality={quality_score:.4f} age={signal_age_ms:.0f}ms fill={position.fill_ratio:.2f} leader={leader_tick.price:.6f} follower_bid={follower_bid:.6f} follower_ask={follower_ask:.6f}"
                     )
+                else:
+                    fill_ratio = executor.estimate_fill_ratio(
+                        settings.notional_usd,
+                        follower_tick.ask_size,
+                        follower_tick.ask or follower_tick.price,
+                    )
+                    metrics.register_cancelled(tick.symbol, 'entry', 'insufficient_depth', fill_ratio)
+                    metrics.flush()
             else:
                 metrics.register_rejected(
                     tick.symbol,
@@ -74,8 +82,17 @@ async def engine_loop(queue: asyncio.Queue):
                 metrics.flush()
                 log_trade(trade)
                 print_event(
-                    f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
+                    f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} fill={trade.fill_ratio:.2f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
                 )
+            else:
+                position = executor.open_positions.get(tick.symbol)
+                fill_ratio = executor.estimate_fill_ratio(
+                    (position.qty * (follower_tick.bid or follower_tick.price)) if position else settings.notional_usd,
+                    follower_tick.bid_size,
+                    follower_tick.bid or follower_tick.price,
+                )
+                metrics.register_cancelled(tick.symbol, 'exit', 'insufficient_depth', fill_ratio)
+                metrics.flush()
 
 
 async def main():

@@ -11,6 +11,7 @@ class Settings(BaseModel):
     paper_initial_balance: float = float(os.getenv('PAPER_INITIAL_BALANCE', '10000'))
     paper_slippage_bps: float = float(os.getenv('PAPER_SLIPPAGE_BPS', '4'))
     paper_depth_safety_factor: float = float(os.getenv('PAPER_DEPTH_SAFETY_FACTOR', '0.35'))
+    min_fill_ratio: float = float(os.getenv('MIN_FILL_RATIO', '0.35'))
     entry_threshold_pct: float = float(os.getenv('ENTRY_THRESHOLD_PCT', '0.13'))
     exit_threshold_pct: float = float(os.getenv('EXIT_THRESHOLD_PCT', '0.03'))
     min_quality_score: float = float(os.getenv('MIN_QUALITY_SCORE', '0.15'))

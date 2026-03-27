@@ -10,6 +10,8 @@ MVP inicial en **Python** con:
 - comisiones
 - slippage configurable
 - slippage dinámico por profundidad visible
+- fills parciales simulados según profundidad visible
+- cancelaciones paper por profundidad insuficiente
 - posiciones abiertas/cerradas
 - logging de trades
 - feeds reales por websocket para Binance Futures y Bybit Linear
@@ -19,6 +21,7 @@ MVP inicial en **Python** con:
 - métricas persistidas por par en `data/pair_metrics.json`
 - ranking dinámico por par en `data/pair_ranking.json`
 - registro de oportunidades rechazadas en `data/rejected_opportunities.jsonl`
+- registro de órdenes canceladas en `data/cancelled_orders.jsonl`
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -65,12 +68,13 @@ PYTHONPATH=src python -m leadlagobot.main
 - `data/pair_metrics.json` → métricas agregadas por símbolo
 - `data/pair_ranking.json` → ranking dinámico por símbolo
 - `data/rejected_opportunities.jsonl` → oportunidades descartadas y razón
+- `data/cancelled_orders.jsonl` → órdenes canceladas por falta de fill suficiente
 
 ## Próximos pasos
 
-1. paper fills parciales y cancelaciones simuladas
-2. agregar snapshots de order book más profundos
-3. score de ranking más sofisticado
-4. dashboard / métricas en vivo
-5. preparar capa de ejecución real separada
-6. automatizar selección activa de pares top
+1. agregar snapshots de order book más profundos
+2. score de ranking más sofisticado
+3. dashboard / métricas en vivo
+4. preparar capa de ejecución real separada
+5. automatizar selección activa de pares top
+6. añadir replay/backtest sobre logs históricos

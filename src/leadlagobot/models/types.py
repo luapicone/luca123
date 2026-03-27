@@ -24,6 +24,8 @@ class PaperPosition:
     follower_entry_bid: float | None
     follower_entry_ask: float | None
     qty: float
+    requested_qty: float
+    fill_ratio: float
     entry_gap_pct: float
     opened_at: float = field(default_factory=time)
 
@@ -34,6 +36,8 @@ class ClosedPaperTrade:
     entry_gap_pct: float
     exit_gap_pct: float
     qty: float
+    requested_qty: float
+    fill_ratio: float
     entry_price: float
     exit_price: float
     gross_pnl: float

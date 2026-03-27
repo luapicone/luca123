@@ -95,6 +95,16 @@ http://localhost:8080
 PYTHONPATH=src python -m leadlagobot.backtest
 ```
 
+## Runner de experimentos
+
+Para probar varias configuraciones live en tandas secuenciales y comparar resultados:
+
+```bash
+EXPERIMENT_DURATION_SECONDS=1800 python3 scripts/run_experiments.py
+python3 scripts/make_experiment_report.py
+cat experiment_report.txt
+```
+
 ### Modo de feed
 
 - `FEED_MODE=live` → websockets reales de Binance y Bybit

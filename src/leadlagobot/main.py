@@ -1,7 +1,8 @@
 import asyncio
 from collections import defaultdict
 
-from leadlagobot.contracts import validate_symbol_rules
+from leadlagobot.account_sync import fetch_account_snapshot
+from leadlagobot.contracts import validate_symbol_rules, update_rules
 from leadlagobot.engine.metrics import PairMetricsTracker
 from leadlagobot.config.settings import settings
 from leadlagobot.engine.paper_executor import PaperExecutor
@@ -13,6 +14,7 @@ from leadlagobot.engine.strategy import (
     should_close_trade,
     should_open_trade,
 )
+from leadlagobot.exchange_metadata import fetch_binance_metadata, fetch_bybit_metadata
 from leadlagobot.exchanges.live_feeds import BinanceTickerFeed, BybitTickerFeed
 from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
 from leadlagobot.margin import MarginValidator
@@ -31,6 +33,15 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float)
     if signal_age_ms > settings.max_signal_age_ms:
         reasons.append('signal_too_old')
     return ','.join(reasons) if reasons else 'unknown'
+
+
+async def bootstrap_metadata():
+    try:
+        binance = await fetch_binance_metadata(settings.symbols)
+        bybit = await fetch_bybit_metadata(settings.symbols)
+        update_rules({**binance, **bybit})
+    except Exception:
+        pass
 
 
 async def engine_loop(queue: asyncio.Queue):
@@ -139,7 +150,8 @@ async def engine_loop(queue: asyncio.Queue):
                 metrics.flush()
                 risk.flush()
 
-        reconciliation.write_snapshot(executor.open_positions, prices)
+        account_snapshot = await fetch_account_snapshot()
+        reconciliation.write_snapshot(executor.open_positions, prices, account_snapshot=account_snapshot)
         status.write(
             {
                 'balance': executor.balance,
@@ -163,11 +175,13 @@ async def engine_loop(queue: asyncio.Queue):
                 'qty_step': rules.qty_step if rules else None,
                 'min_qty': rules.min_qty if rules else None,
                 'min_notional': rules.min_notional if rules else None,
+                'account_snapshot': account_snapshot,
             }
         )
 
 
 async def main():
+    await bootstrap_metadata()
     queue = asyncio.Queue()
 
     if settings.feed_mode == 'mock':

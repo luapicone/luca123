@@ -14,6 +14,7 @@ class Settings(BaseModel):
     depth_levels_assumed: int = int(os.getenv('DEPTH_LEVELS_ASSUMED', '5'))
     real_execution_enabled: bool = os.getenv('REAL_EXECUTION_ENABLED', 'false').strip().lower() == 'true'
     dry_run_enabled: bool = os.getenv('DRY_RUN_ENABLED', 'true').strip().lower() == 'true'
+    real_confirm_token: str = os.getenv('REAL_CONFIRM_TOKEN', '')
     binance_api_key: str = os.getenv('BINANCE_API_KEY', '')
     binance_api_secret: str = os.getenv('BINANCE_API_SECRET', '')
     bybit_api_key: str = os.getenv('BYBIT_API_KEY', '')

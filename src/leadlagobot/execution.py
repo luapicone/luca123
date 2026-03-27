@@ -62,6 +62,11 @@ class RealExecutionAdapter(ExecutionAdapter):
                 'status': 'blocked',
                 'reason': 'real execution disabled; set REAL_EXECUTION_ENABLED=true explicitly',
             }
+        if not settings.real_confirm_token:
+            return {
+                'status': 'blocked',
+                'reason': 'missing REAL_CONFIRM_TOKEN for protected real execution',
+            }
         return None
 
     def _credentials(self, exchange: str):
@@ -113,7 +118,7 @@ class RealExecutionAdapter(ExecutionAdapter):
         with AUDIT_LOG.open('a', encoding='utf8') as file:
             file.write(json.dumps(payload) + '\n')
 
-    def _build_placeholder(self, intent: ExecutionIntent):
+    def _build_result(self, intent: ExecutionIntent):
         api_key, api_secret = self._credentials(intent.exchange)
         payload = self._build_payload(intent)
         if intent.exchange == 'binance' and api_secret:
@@ -125,17 +130,18 @@ class RealExecutionAdapter(ExecutionAdapter):
             signed = None
 
         audit = {
-            'status': 'dry_run' if settings.dry_run_enabled else 'not_implemented',
+            'status': 'dry_run' if settings.dry_run_enabled else 'send_blocked',
             'intent': asdict(intent),
             'endpoint_hint': self._endpoint_hint(intent.exchange, intent.side),
             'payload': payload,
             'signed_preview': signed,
             'has_api_key': bool(api_key),
             'has_api_secret': bool(api_secret),
+            'real_confirm_token_present': bool(settings.real_confirm_token),
         }
         self._audit(audit)
         return {
-            'status': 'dry_run' if settings.dry_run_enabled else 'not_implemented',
+            'status': 'dry_run' if settings.dry_run_enabled else 'send_blocked',
             'reason': 'signed payload prepared but not sent',
             'symbol': intent.symbol,
             'exchange': intent.exchange,
@@ -156,7 +162,7 @@ class RealExecutionAdapter(ExecutionAdapter):
                 'side': intent.side,
                 'qty': intent.qty,
             }
-        return self._build_placeholder(intent)
+        return self._build_result(intent)
 
     def place_exit(self, intent: ExecutionIntent, tick: TickerSnapshot):
         blocked = self._guard()
@@ -167,4 +173,4 @@ class RealExecutionAdapter(ExecutionAdapter):
                 'side': intent.side,
                 'qty': intent.qty,
             }
-        return self._build_placeholder(intent)
+        return self._build_result(intent)

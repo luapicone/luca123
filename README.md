@@ -143,10 +143,20 @@ Se agregó una base seria pre-ejecución real:
 - dry-run de órdenes con auditoría en `data/execution_dry_run.jsonl`
 - variables de API y `DRY_RUN_ENABLED`
 
+## Bloque 4 incorporado
+
+Se agregó una base más cercana a producción, todavía protegida:
+
+- boot con metadata real automática
+- `REAL_CONFIRM_TOKEN` como guard adicional para ejecución real
+- snapshot de cuenta/posiciones en modo dry-run (`account_sync.py`)
+- reconciliación extendida con `account_snapshot`
+- payloads firmados preparados y auditados, pero no enviados por defecto
+
 ## Próximos pasos
 
 1. enviar órdenes reales firmadas con confirmaciones y límites fuertes
-2. sincronizar balances/posiciones reales por API
+2. sincronizar balances/posiciones reales por API con respuestas reales
 3. automatizar rotación/adaptación de universo de pares
 4. añadir replay/backtest sobre logs históricos más ricos
 5. exponer dashboard web con charts más avanzados

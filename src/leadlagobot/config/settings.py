@@ -13,11 +13,18 @@ class Settings(BaseModel):
     paper_depth_safety_factor: float = float(os.getenv('PAPER_DEPTH_SAFETY_FACTOR', '0.35'))
     depth_levels_assumed: int = int(os.getenv('DEPTH_LEVELS_ASSUMED', '5'))
     real_execution_enabled: bool = os.getenv('REAL_EXECUTION_ENABLED', 'false').strip().lower() == 'true'
+    risk_enabled: bool = os.getenv('RISK_ENABLED', 'true').strip().lower() == 'true'
+    kill_switch_file: str = os.getenv('KILL_SWITCH_FILE', 'data/KILL_SWITCH')
     min_fill_ratio: float = float(os.getenv('MIN_FILL_RATIO', '0.35'))
     entry_threshold_pct: float = float(os.getenv('ENTRY_THRESHOLD_PCT', '0.13'))
     exit_threshold_pct: float = float(os.getenv('EXIT_THRESHOLD_PCT', '0.03'))
     min_quality_score: float = float(os.getenv('MIN_QUALITY_SCORE', '0.15'))
     max_signal_age_ms: float = float(os.getenv('MAX_SIGNAL_AGE_MS', '2500'))
+    max_daily_loss_usd: float = float(os.getenv('MAX_DAILY_LOSS_USD', '250'))
+    max_loss_per_trade_usd: float = float(os.getenv('MAX_LOSS_PER_TRADE_USD', '40'))
+    max_open_positions: int = int(os.getenv('MAX_OPEN_POSITIONS', '3'))
+    max_exposure_usd: float = float(os.getenv('MAX_EXPOSURE_USD', '2250'))
+    max_cancel_rate: float = float(os.getenv('MAX_CANCEL_RATE', '0.65'))
     top_pairs_limit: int = int(os.getenv('TOP_PAIRS_LIMIT', '8'))
     ranking_min_signals: int = int(os.getenv('RANKING_MIN_SIGNALS', '20'))
     ranking_weight_net_pnl: float = float(os.getenv('RANKING_WEIGHT_NET_PNL', '1.0'))

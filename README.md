@@ -110,10 +110,24 @@ PYTHONPATH=src python -m leadlagobot.backtest
 - `data/status.json` → estado vivo del bot
 - `data/status_history.jsonl` → historial de snapshots para replay/dashboard
 
+## Bloque 1 incorporado
+
+Se agregó una base seria antes de ejecución real:
+
+- `RiskEngine` con límites operativos
+- kill switch por archivo (`data/KILL_SWITCH`)
+- límites de pérdida diaria
+- límite de pérdida por trade
+- límite de posiciones abiertas
+- límite de exposición total
+- control de tasa de cancelaciones
+- `ReconciliationStore` con snapshot persistido de posiciones/ticks
+- estado de riesgo visible en `status.json`
+
 ## Próximos pasos
 
-1. conectar `RealExecutionAdapter` a APIs reales con firma/autenticación y límites de riesgo
-2. unificar profundidad efectiva entre exchanges con mejor normalización
+1. conectar `RealExecutionAdapter` a APIs reales con firma/autenticación
+2. validar contratos, tamaños, tick size, min notional y margen por exchange
 3. automatizar rotación/adaptación de universo de pares
 4. añadir replay/backtest sobre logs históricos más ricos
 5. exponer dashboard web con charts

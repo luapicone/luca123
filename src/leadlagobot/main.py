@@ -14,6 +14,8 @@ from leadlagobot.engine.strategy import (
 )
 from leadlagobot.exchanges.live_feeds import BinanceTickerFeed, BybitTickerFeed
 from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
+from leadlagobot.reconciliation import ReconciliationStore
+from leadlagobot.risk import RiskEngine
 from leadlagobot.utils.logger import log_trade, print_event
 from leadlagobot.utils.status import StatusBoard
 
@@ -32,12 +34,16 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float)
 async def engine_loop(queue: asyncio.Queue):
     executor = PaperExecutor()
     metrics = PairMetricsTracker()
+    risk = RiskEngine()
+    risk.load()
+    reconciliation = ReconciliationStore()
     status = StatusBoard()
     prices = defaultdict(dict)
 
     while True:
         tick = await queue.get()
         prices[tick.symbol][tick.exchange] = tick
+        risk.register_signal()
 
         if 'binance' not in prices[tick.symbol] or 'bybit' not in prices[tick.symbol]:
             continue
@@ -55,12 +61,21 @@ async def engine_loop(queue: asyncio.Queue):
         quality_score = estimate_quality_score(gap_pct, signal_age_ms, follower_tick)
         metrics.register_signal(tick.symbol, signal_age_ms, quality_score)
 
+        current_exposure = len(executor.open_positions) * settings.notional_usd
+        expected_worst_loss = settings.notional_usd * max(gap_pct / 100, 0.01)
+        risk_ok, risk_reason = risk.validate_entry(
+            open_positions=len(executor.open_positions),
+            current_exposure_usd=current_exposure,
+            expected_worst_loss_usd=expected_worst_loss,
+        )
+
         if tick.symbol not in executor.open_positions:
-            if should_open_trade(gap_pct, quality_score, signal_age_ms):
+            if risk_ok and should_open_trade(gap_pct, quality_score, signal_age_ms):
                 position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
                 if position:
                     metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
                     metrics.flush()
+                    risk.flush()
                     follower_bid = follower_tick.bid if follower_tick.bid is not None else follower_tick.price
                     follower_ask = follower_tick.ask if follower_tick.ask is not None else follower_tick.price
                     print_event(
@@ -74,22 +89,27 @@ async def engine_loop(queue: asyncio.Queue):
                         follower_tick.ask_levels,
                     )
                     metrics.register_cancelled(tick.symbol, 'entry', 'insufficient_depth', fill_ratio)
+                    risk.register_cancel()
                     metrics.flush()
+                    risk.flush()
             else:
                 metrics.register_rejected(
                     tick.symbol,
                     gap_pct,
                     quality_score,
                     signal_age_ms,
-                    rejection_reason(gap_pct, quality_score, signal_age_ms),
+                    risk_reason if not risk_ok else rejection_reason(gap_pct, quality_score, signal_age_ms),
                 )
                 metrics.flush()
+                risk.flush()
 
         elif should_close_trade(gap_pct):
             trade = executor.close_position(tick.symbol, leader_tick, follower_tick, gap_pct)
             if trade:
+                risk.register_trade(trade.net_pnl)
                 metrics.register_close(trade)
                 metrics.flush()
+                risk.flush()
                 log_trade(trade)
                 print_event(
                     f"[cyan]CLOSE[/cyan] {trade.symbol} net={trade.net_pnl:.4f} usd gross={trade.gross_pnl:.4f} fees={trade.fees:.4f} slip={trade.slippage_cost:.4f} fill={trade.fill_ratio:.2f} duration={trade.duration_ms:.0f}ms balance={executor.balance:.2f}"
@@ -103,8 +123,11 @@ async def engine_loop(queue: asyncio.Queue):
                     follower_tick.bid_levels,
                 )
                 metrics.register_cancelled(tick.symbol, 'exit', 'insufficient_depth', fill_ratio)
+                risk.register_cancel()
                 metrics.flush()
+                risk.flush()
 
+        reconciliation.write_snapshot(executor.open_positions, prices)
         status.write(
             {
                 'balance': executor.balance,
@@ -116,6 +139,10 @@ async def engine_loop(queue: asyncio.Queue):
                 'latest_signal_age_ms': signal_age_ms,
                 'leader_price': leader_price,
                 'follower_price': follower_price,
+                'risk_ok': risk_ok,
+                'risk_reason': risk_reason,
+                'daily_realized_pnl': risk.daily_realized_pnl,
+                'cancel_rate': risk.cancel_rate(),
             }
         )
 

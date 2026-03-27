@@ -49,6 +49,12 @@ class Settings(BaseModel):
     ranking_rejection_penalty_cap: float = float(os.getenv('RANKING_REJECTION_PENALTY_CAP', '0.75'))
     ranking_cancel_penalty_cap: float = float(os.getenv('RANKING_CANCEL_PENALTY_CAP', '0.75'))
     notional_usd: float = float(os.getenv('NOTIONAL_USD', '750'))
+    strategy_mode: str = os.getenv('STRATEGY_MODE', 'leadlag').strip().lower()
+    mr_lookback: int = int(os.getenv('MR_LOOKBACK', '60'))
+    mr_entry_zscore: float = float(os.getenv('MR_ENTRY_ZSCORE', '2.0'))
+    mr_exit_zscore: float = float(os.getenv('MR_EXIT_ZSCORE', '0.5'))
+    mr_min_hold_ms: float = float(os.getenv('MR_MIN_HOLD_MS', '5000'))
+    mr_max_hold_ms: float = float(os.getenv('MR_MAX_HOLD_MS', '900000'))
     feed_mode: str = os.getenv('FEED_MODE', 'live').strip().lower()
     symbols: list[str] = [item.strip().upper() for item in os.getenv('SYMBOLS', 'BRUSDT,LYNUSDT,JCTUSDT').split(',') if item.strip()]
 

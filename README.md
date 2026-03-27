@@ -225,6 +225,18 @@ Se agregó un subbloque seguro previo a activación real:
 - chequeo de activación segura (`activation_check.py`)
 - reconciliación extendida con órdenes abiertas del exchange
 
+## Mean reversion intradía
+
+Ahora el bot soporta un pivot a estrategia de **mean reversion intradía** usando `STRATEGY_MODE=mean_reversion`.
+
+Parámetros base:
+
+- `MR_LOOKBACK`
+- `MR_ENTRY_ZSCORE`
+- `MR_EXIT_ZSCORE`
+- `MR_MIN_HOLD_MS`
+- `MR_MAX_HOLD_MS`
+
 ## Research de señales
 
 Ahora también se guarda un dataset liviano de research en:

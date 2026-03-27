@@ -25,13 +25,27 @@ def load_trades():
 
 
 def summarize(trades):
-    summary = defaultdict(lambda: {'count': 0, 'net': 0.0, 'gross': 0.0, 'wins': 0, 'losses': 0})
+    summary = defaultdict(lambda: {
+        'count': 0,
+        'net': 0.0,
+        'gross': 0.0,
+        'fees': 0.0,
+        'slippage': 0.0,
+        'wins': 0,
+        'losses': 0,
+        'avg_fill': 0.0,
+        'avg_duration_ms': 0.0,
+    })
     for trade in trades:
         symbol = trade.get('symbol', 'UNKNOWN')
         bucket = summary[symbol]
         bucket['count'] += 1
         bucket['net'] += trade.get('net_pnl', 0.0)
         bucket['gross'] += trade.get('gross_pnl', 0.0)
+        bucket['fees'] += trade.get('fees', 0.0)
+        bucket['slippage'] += trade.get('slippage_cost', 0.0)
+        bucket['avg_fill'] = ((bucket['avg_fill'] * (bucket['count'] - 1)) + trade.get('fill_ratio', 0.0)) / bucket['count']
+        bucket['avg_duration_ms'] = ((bucket['avg_duration_ms'] * (bucket['count'] - 1)) + trade.get('duration_ms', 0.0)) / bucket['count']
         if trade.get('net_pnl', 0.0) >= 0:
             bucket['wins'] += 1
         else:
@@ -47,7 +61,11 @@ def main():
     table.add_column('Wins', justify='right')
     table.add_column('Losses', justify='right')
     table.add_column('Gross', justify='right')
+    table.add_column('Fees', justify='right')
+    table.add_column('Slip', justify='right')
     table.add_column('Net', justify='right')
+    table.add_column('Fill', justify='right')
+    table.add_column('Avg ms', justify='right')
 
     summary = summarize(trades)
     for symbol, row in sorted(summary.items(), key=lambda item: item[1]['net'], reverse=True):
@@ -57,7 +75,11 @@ def main():
             str(row['wins']),
             str(row['losses']),
             f"{row['gross']:.2f}",
+            f"{row['fees']:.2f}",
+            f"{row['slippage']:.2f}",
             f"{row['net']:.2f}",
+            f"{row['avg_fill']:.2f}",
+            f"{row['avg_duration_ms']:.0f}",
         )
 
     console.print(table)

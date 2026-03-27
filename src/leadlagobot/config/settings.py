@@ -20,6 +20,10 @@ class Settings(BaseModel):
     max_signal_age_ms: float = float(os.getenv('MAX_SIGNAL_AGE_MS', '2500'))
     top_pairs_limit: int = int(os.getenv('TOP_PAIRS_LIMIT', '8'))
     ranking_min_signals: int = int(os.getenv('RANKING_MIN_SIGNALS', '20'))
+    ranking_weight_net_pnl: float = float(os.getenv('RANKING_WEIGHT_NET_PNL', '1.0'))
+    ranking_weight_quality: float = float(os.getenv('RANKING_WEIGHT_QUALITY', '100.0'))
+    ranking_weight_fill: float = float(os.getenv('RANKING_WEIGHT_FILL', '40.0'))
+    ranking_weight_win_rate: float = float(os.getenv('RANKING_WEIGHT_WIN_RATE', '25.0'))
     notional_usd: float = float(os.getenv('NOTIONAL_USD', '750'))
     feed_mode: str = os.getenv('FEED_MODE', 'live').strip().lower()
     symbols: list[str] = [item.strip().upper() for item in os.getenv('SYMBOLS', 'BRUSDT,LYNUSDT,JCTUSDT').split(',') if item.strip()]

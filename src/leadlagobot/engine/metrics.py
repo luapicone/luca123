@@ -45,10 +45,10 @@ class PairMetricsTracker:
         rejection_penalty = (bucket['rejected'] / bucket['signals']) if bucket['signals'] else 0.0
         cancel_penalty = (bucket['cancelled'] / bucket['signals']) if bucket['signals'] else 0.0
         bucket['ranking_score'] = (
-            bucket['net_pnl']
-            + (bucket['avg_quality_score'] * 100)
-            + (bucket['avg_fill_ratio'] * 40)
-            + (win_rate * 25)
+            (bucket['net_pnl'] * settings.ranking_weight_net_pnl)
+            + (bucket['avg_quality_score'] * settings.ranking_weight_quality)
+            + (bucket['avg_fill_ratio'] * settings.ranking_weight_fill)
+            + (win_rate * settings.ranking_weight_win_rate)
             - (bucket['avg_signal_age_ms'] / 1000)
             - (rejection_penalty * 20)
             - (cancel_penalty * 25)

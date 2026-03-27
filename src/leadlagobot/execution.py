@@ -54,16 +54,24 @@ class RealExecutionAdapter(ExecutionAdapter):
             }
         return None
 
+    def _endpoint_hint(self, exchange: str, side: str):
+        if exchange == 'binance':
+            return {'exchange': exchange, 'endpoint': '/fapi/v1/order', 'method': 'POST', 'side': side}
+        if exchange == 'bybit':
+            return {'exchange': exchange, 'endpoint': '/v5/order/create', 'method': 'POST', 'side': side}
+        return {'exchange': exchange, 'endpoint': 'unknown', 'method': 'POST', 'side': side}
+
     def _build_placeholder(self, intent: ExecutionIntent):
         return {
             'status': 'not_implemented',
-            'reason': 'real execution adapter pending exchange wiring',
+            'reason': 'real execution adapter pending signed API wiring',
             'symbol': intent.symbol,
             'exchange': intent.exchange,
             'side': intent.side,
             'qty': intent.qty,
             'order_type': intent.order_type,
             'reference_price': intent.reference_price,
+            'endpoint_hint': self._endpoint_hint(intent.exchange, intent.side),
         }
 
     def place_entry(self, intent: ExecutionIntent, tick: TickerSnapshot):

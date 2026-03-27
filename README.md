@@ -28,10 +28,11 @@ MVP inicial en **Python** con:
 - snapshot de estado en vivo en `data/status.json`
 - dashboard CLI en vivo
 - dashboard web liviano
-- replay / backtest básico sobre logs
+- replay / backtest enriquecido sobre logs
 - capa base separada de adapters de ejecución (`PaperExecutionAdapter` / `RealExecutionAdapter`)
 - guard de seguridad para bloquear ejecución real salvo habilitación explícita (`REAL_EXECUTION_ENABLED=true`)
 - interface de ejecución real preparada para intents con `side`, `qty`, `reference_price` y `order_type`
+- hints de endpoints reales por exchange para el wiring futuro
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -109,9 +110,9 @@ PYTHONPATH=src python -m leadlagobot.backtest
 
 ## Próximos pasos
 
-1. subir Bybit a más niveles de order book y unificar profundidad efectiva entre exchanges
-2. conectar `RealExecutionAdapter` a APIs reales con protección fuerte
-3. score de ranking más sofisticado
-4. automatizar rotación/adaptación de universo de pares
-5. añadir replay/backtest sobre logs históricos más ricos
-6. exponer dashboard web con filtros y charts
+1. conectar `RealExecutionAdapter` a APIs reales con firma/autenticación y límites de riesgo
+2. unificar profundidad efectiva entre exchanges con mejor normalización
+3. automatizar rotación/adaptación de universo de pares
+4. añadir replay/backtest sobre logs históricos más ricos
+5. exponer dashboard web con charts
+6. sumar persistencia histórica de snapshots de mercado

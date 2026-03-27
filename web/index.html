@@ -7,16 +7,21 @@
   <style>
     body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 20px; }
     h1, h2 { margin: 0 0 12px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
     .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; border-bottom: 1px solid #334155; text-align: left; font-size: 14px; }
     .muted { color: #94a3b8; }
+    input { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #475569; background: #0b1220; color: #e2e8f0; }
   </style>
 </head>
 <body>
   <h1>LeadLagobot Web Dashboard</h1>
   <p class="muted">Lee archivos JSON generados por el bot desde <code>data/</code>.</p>
+  <div class="card" style="margin-bottom:16px;">
+    <h2>Filtros</h2>
+    <input id="symbolFilter" placeholder="Filtrar por símbolo..." />
+  </div>
   <div class="grid">
     <div class="card">
       <h2>Status</h2>
@@ -46,31 +51,37 @@
       document.getElementById('status').textContent = JSON.stringify(status, null, 2);
     }
 
-    function renderRanking(rows) {
+    function renderRanking(rows, filter) {
       const table = document.getElementById('ranking');
-      const top = rows.slice(0, 10);
-      table.innerHTML = '<tr><th>Symbol</th><th>Score</th><th>Net</th><th>Signals</th></tr>' +
-        top.map(r => `<tr><td>${r.symbol || '-'}</td><td>${(r.ranking_score || 0).toFixed(2)}</td><td>${(r.net_pnl || 0).toFixed(2)}</td><td>${r.signals || 0}</td></tr>`).join('');
+      const normalized = (filter || '').trim().toUpperCase();
+      const filtered = rows.filter(r => !normalized || (r.symbol || '').includes(normalized)).slice(0, 15);
+      table.innerHTML = '<tr><th>Symbol</th><th>Score</th><th>Net</th><th>Signals</th><th>Fill</th></tr>' +
+        filtered.map(r => `<tr><td>${r.symbol || '-'}</td><td>${(r.ranking_score || 0).toFixed(2)}</td><td>${(r.net_pnl || 0).toFixed(2)}</td><td>${r.signals || 0}</td><td>${(r.avg_fill_ratio || 0).toFixed(2)}</td></tr>`).join('');
     }
 
-    function renderMetrics(metrics) {
+    function renderMetrics(metrics, filter) {
       const table = document.getElementById('metrics');
-      const rows = Object.entries(metrics).slice(0, 10);
-      table.innerHTML = '<tr><th>Symbol</th><th>Wins</th><th>Losses</th><th>Fill</th></tr>' +
-        rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${r.wins || 0}</td><td>${r.losses || 0}</td><td>${(r.avg_fill_ratio || 0).toFixed(2)}</td></tr>`).join('');
+      const normalized = (filter || '').trim().toUpperCase();
+      const rows = Object.entries(metrics)
+        .filter(([symbol]) => !normalized || symbol.includes(normalized))
+        .slice(0, 15);
+      table.innerHTML = '<tr><th>Symbol</th><th>Wins</th><th>Losses</th><th>Rejected</th><th>Cancelled</th><th>Avg ms</th></tr>' +
+        rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${r.wins || 0}</td><td>${r.losses || 0}</td><td>${r.rejected || 0}</td><td>${r.cancelled || 0}</td><td>${(r.avg_signal_age_ms || 0).toFixed(0)}</td></tr>`).join('');
     }
 
     async function refresh() {
+      const filter = document.getElementById('symbolFilter').value;
       const [status, ranking, metrics] = await Promise.all([
         loadJson('../data/status.json', {}),
         loadJson('../data/pair_ranking.json', []),
         loadJson('../data/pair_metrics.json', {}),
       ]);
       renderStatus(status);
-      renderRanking(ranking);
-      renderMetrics(metrics);
+      renderRanking(ranking, filter);
+      renderMetrics(metrics, filter);
     }
 
+    document.getElementById('symbolFilter').addEventListener('input', refresh);
     refresh();
     setInterval(refresh, 1000);
   </script>

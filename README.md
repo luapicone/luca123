@@ -124,11 +124,20 @@ Se agregó una base seria antes de ejecución real:
 - `ReconciliationStore` con snapshot persistido de posiciones/ticks
 - estado de riesgo visible en `status.json`
 
+## Bloque 2 incorporado
+
+Se agregó una base operativa pre-real para validación:
+
+- validación de reglas por símbolo (`tick_size`, `qty_step`, `min_qty`, `min_notional`)
+- chequeo base de margen disponible y exposición
+- reasons explícitos en `status.json` para riesgo / margen / reglas
+- snapshot visible de reglas activas del símbolo
+
 ## Próximos pasos
 
 1. conectar `RealExecutionAdapter` a APIs reales con firma/autenticación
-2. validar contratos, tamaños, tick size, min notional y margen por exchange
+2. reemplazar reglas default por exchange metadata real
 3. automatizar rotación/adaptación de universo de pares
 4. añadir replay/backtest sobre logs históricos más ricos
-5. exponer dashboard web con charts
+5. exponer dashboard web con charts más avanzados
 6. sumar persistencia histórica de snapshots de mercado

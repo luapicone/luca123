@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict
 
+from leadlagobot.contracts import validate_symbol_rules
 from leadlagobot.engine.metrics import PairMetricsTracker
 from leadlagobot.config.settings import settings
 from leadlagobot.engine.paper_executor import PaperExecutor
@@ -14,6 +15,7 @@ from leadlagobot.engine.strategy import (
 )
 from leadlagobot.exchanges.live_feeds import BinanceTickerFeed, BybitTickerFeed
 from leadlagobot.exchanges.mock_feeds import MockExchangeFeed
+from leadlagobot.margin import MarginValidator
 from leadlagobot.reconciliation import ReconciliationStore
 from leadlagobot.risk import RiskEngine
 from leadlagobot.utils.logger import log_trade, print_event
@@ -34,6 +36,7 @@ def rejection_reason(gap_pct: float, quality_score: float, signal_age_ms: float)
 async def engine_loop(queue: asyncio.Queue):
     executor = PaperExecutor()
     metrics = PairMetricsTracker()
+    margin = MarginValidator()
     risk = RiskEngine()
     risk.load()
     reconciliation = ReconciliationStore()
@@ -68,9 +71,12 @@ async def engine_loop(queue: asyncio.Queue):
             current_exposure_usd=current_exposure,
             expected_worst_loss_usd=expected_worst_loss,
         )
+        margin_ok, margin_reason = margin.validate(executor.balance, current_exposure, settings.notional_usd)
+        qty_preview = settings.notional_usd / max(follower_price, 1e-9)
+        rules_ok, rules_reason, rules = validate_symbol_rules(tick.symbol, follower_price, qty_preview)
 
         if tick.symbol not in executor.open_positions:
-            if risk_ok and should_open_trade(gap_pct, quality_score, signal_age_ms):
+            if risk_ok and margin_ok and rules_ok and should_open_trade(gap_pct, quality_score, signal_age_ms):
                 position = executor.open_position(tick.symbol, leader_tick, follower_tick, gap_pct)
                 if position:
                     metrics.register_open(tick.symbol, gap_pct, position.fill_ratio)
@@ -93,12 +99,18 @@ async def engine_loop(queue: asyncio.Queue):
                     metrics.flush()
                     risk.flush()
             else:
+                fail_reason = (
+                    risk_reason if not risk_ok else
+                    margin_reason if not margin_ok else
+                    rules_reason if not rules_ok else
+                    rejection_reason(gap_pct, quality_score, signal_age_ms)
+                )
                 metrics.register_rejected(
                     tick.symbol,
                     gap_pct,
                     quality_score,
                     signal_age_ms,
-                    risk_reason if not risk_ok else rejection_reason(gap_pct, quality_score, signal_age_ms),
+                    fail_reason,
                 )
                 metrics.flush()
                 risk.flush()
@@ -141,8 +153,16 @@ async def engine_loop(queue: asyncio.Queue):
                 'follower_price': follower_price,
                 'risk_ok': risk_ok,
                 'risk_reason': risk_reason,
+                'margin_ok': margin_ok,
+                'margin_reason': margin_reason,
+                'rules_ok': rules_ok,
+                'rules_reason': rules_reason,
                 'daily_realized_pnl': risk.daily_realized_pnl,
                 'cancel_rate': risk.cancel_rate(),
+                'tick_size': rules.tick_size if rules else None,
+                'qty_step': rules.qty_step if rules else None,
+                'min_qty': rules.min_qty if rules else None,
+                'min_notional': rules.min_notional if rules else None,
             }
         )
 

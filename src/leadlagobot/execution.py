@@ -10,6 +10,7 @@ class ExecutionIntent:
     qty: float
     reference_price: float
     exchange: str
+    order_type: str = 'market'
 
 
 class ExecutionAdapter:
@@ -29,6 +30,7 @@ class PaperExecutionAdapter(ExecutionAdapter):
             'qty': intent.qty,
             'exchange': intent.exchange,
             'reference_price': intent.reference_price,
+            'order_type': intent.order_type,
         }
 
     def place_exit(self, intent: ExecutionIntent, tick: TickerSnapshot):
@@ -39,6 +41,7 @@ class PaperExecutionAdapter(ExecutionAdapter):
             'qty': intent.qty,
             'exchange': intent.exchange,
             'reference_price': intent.reference_price,
+            'order_type': intent.order_type,
         }
 
 
@@ -51,6 +54,18 @@ class RealExecutionAdapter(ExecutionAdapter):
             }
         return None
 
+    def _build_placeholder(self, intent: ExecutionIntent):
+        return {
+            'status': 'not_implemented',
+            'reason': 'real execution adapter pending exchange wiring',
+            'symbol': intent.symbol,
+            'exchange': intent.exchange,
+            'side': intent.side,
+            'qty': intent.qty,
+            'order_type': intent.order_type,
+            'reference_price': intent.reference_price,
+        }
+
     def place_entry(self, intent: ExecutionIntent, tick: TickerSnapshot):
         blocked = self._guard()
         if blocked:
@@ -58,14 +73,9 @@ class RealExecutionAdapter(ExecutionAdapter):
                 'symbol': intent.symbol,
                 'exchange': intent.exchange,
                 'side': intent.side,
+                'qty': intent.qty,
             }
-        return {
-            'status': 'not_implemented',
-            'reason': 'real execution adapter pending exchange wiring',
-            'symbol': intent.symbol,
-            'exchange': intent.exchange,
-            'side': intent.side,
-        }
+        return self._build_placeholder(intent)
 
     def place_exit(self, intent: ExecutionIntent, tick: TickerSnapshot):
         blocked = self._guard()
@@ -74,11 +84,6 @@ class RealExecutionAdapter(ExecutionAdapter):
                 'symbol': intent.symbol,
                 'exchange': intent.exchange,
                 'side': intent.side,
+                'qty': intent.qty,
             }
-        return {
-            'status': 'not_implemented',
-            'reason': 'real execution adapter pending exchange wiring',
-            'symbol': intent.symbol,
-            'exchange': intent.exchange,
-            'side': intent.side,
-        }
+        return self._build_placeholder(intent)

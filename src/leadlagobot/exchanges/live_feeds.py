@@ -62,7 +62,7 @@ class BybitTickerFeed:
 
     async def run(self):
         url = 'wss://stream.bybit.com/v5/public/linear'
-        topics = [f'tickers.{symbol}' for symbol in self.symbols] + [f'orderbook.1.{symbol}' for symbol in self.symbols]
+        topics = [f'tickers.{symbol}' for symbol in self.symbols] + [f'orderbook.50.{symbol}' for symbol in self.symbols]
         state: dict[str, dict] = {}
 
         async with aiohttp.ClientSession() as session:
@@ -93,7 +93,7 @@ class BybitTickerFeed:
                         bucket['ask_size'] = float(rows.get('ask1Size') or 0)
                         bucket['price'] = float(rows.get('markPrice') or rows.get('lastPrice'))
                         bucket['ts'] = payload.get('ts', 0) / 1000
-                    elif topic.startswith('orderbook.1.'):
+                    elif topic.startswith('orderbook.50.'):
                         data = payload.get('data', {})
                         bucket['bid_levels'] = [(float(price), float(size)) for price, size in data.get('b', [])]
                         bucket['ask_levels'] = [(float(price), float(size)) for price, size in data.get('a', [])]

@@ -21,15 +21,23 @@ class PaperExecutor:
         base_depth = size * price * settings.paper_depth_safety_factor
         return base_depth * self._aggregate_depth_multiplier()
 
-    def _depth_penalty(self, notional: float, size: float | None, price: float | None) -> float:
-        visible_depth_usd = self._safe_visible_depth_usd(size, price)
+    def _level_depth_usd(self, levels: list[tuple[float, float]] | None) -> float:
+        if not levels:
+            return 0.0
+        return sum(price * size for price, size in levels[: settings.depth_levels_assumed]) * settings.paper_depth_safety_factor
+
+    def _effective_depth_usd(self, size: float | None, price: float | None, levels: list[tuple[float, float]] | None) -> float:
+        return max(self._safe_visible_depth_usd(size, price), self._level_depth_usd(levels))
+
+    def _depth_penalty(self, notional: float, size: float | None, price: float | None, levels: list[tuple[float, float]] | None = None) -> float:
+        visible_depth_usd = self._effective_depth_usd(size, price, levels)
         if visible_depth_usd <= 0:
             return self._base_slippage_cost(notional)
         pressure = min(3.0, notional / visible_depth_usd)
         return self._base_slippage_cost(notional) * pressure
 
-    def estimate_fill_ratio(self, notional: float, size: float | None, price: float | None) -> float:
-        visible_depth_usd = self._safe_visible_depth_usd(size, price)
+    def estimate_fill_ratio(self, notional: float, size: float | None, price: float | None, levels: list[tuple[float, float]] | None = None) -> float:
+        visible_depth_usd = self._effective_depth_usd(size, price, levels)
         if visible_depth_usd <= 0:
             return 0.0
         return min(1.0, visible_depth_usd / notional)
@@ -40,7 +48,7 @@ class PaperExecutor:
 
         entry_price = follower_tick.ask or follower_tick.price
         requested_qty = settings.notional_usd / entry_price
-        fill_ratio = self.estimate_fill_ratio(settings.notional_usd, follower_tick.ask_size, entry_price)
+        fill_ratio = self.estimate_fill_ratio(settings.notional_usd, follower_tick.ask_size, entry_price, follower_tick.ask_levels)
         if fill_ratio < settings.min_fill_ratio:
             return None
 
@@ -66,17 +74,17 @@ class PaperExecutor:
             return None
 
         exit_price = follower_tick.bid or follower_tick.price
-        close_fill_ratio = self.estimate_fill_ratio(position.qty * exit_price, follower_tick.bid_size, exit_price)
+        close_fill_ratio = self.estimate_fill_ratio(position.qty * exit_price, follower_tick.bid_size, exit_price, follower_tick.bid_levels)
         if close_fill_ratio < settings.min_fill_ratio:
             self.open_positions[symbol] = position
             return None
 
         executed_qty = position.qty * close_fill_ratio
-        gross_pnl = (leader_tick.price - exit_price) * executed_qty
         traded_notional = executed_qty * exit_price
+        gross_pnl = (leader_tick.price - exit_price) * executed_qty
         fees = traded_notional * (settings.binance_fee_rate + settings.bybit_fee_rate)
-        open_slippage = self._depth_penalty(traded_notional, follower_tick.ask_size, follower_tick.ask or follower_tick.price)
-        close_slippage = self._depth_penalty(traded_notional, follower_tick.bid_size, follower_tick.bid or follower_tick.price)
+        open_slippage = self._depth_penalty(traded_notional, follower_tick.ask_size, follower_tick.ask or follower_tick.price, follower_tick.ask_levels)
+        close_slippage = self._depth_penalty(traded_notional, follower_tick.bid_size, follower_tick.bid or follower_tick.price, follower_tick.bid_levels)
         slippage_cost = open_slippage + close_slippage
         net_pnl = gross_pnl - fees - slippage_cost
         self.balance += net_pnl

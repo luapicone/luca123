@@ -10,7 +10,7 @@ MVP inicial en **Python** con:
 - comisiones
 - slippage configurable
 - slippage dinámico por profundidad visible
-- profundidad multi-nivel inicial por websocket (`depth5` en Binance + `orderbook.1` en Bybit cuando está disponible)
+- profundidad multi-nivel inicial por websocket (`depth5` en Binance + `orderbook.50` en Bybit)
 - parámetro base para ampliar la profundidad efectiva modelada (`DEPTH_LEVELS_ASSUMED`)
 - fills parciales simulados según profundidad visible agregada multi-nivel
 - cancelaciones paper por profundidad insuficiente
@@ -31,6 +31,7 @@ MVP inicial en **Python** con:
 - replay / backtest básico sobre logs
 - capa base separada de adapters de ejecución (`PaperExecutionAdapter` / `RealExecutionAdapter`)
 - guard de seguridad para bloquear ejecución real salvo habilitación explícita (`REAL_EXECUTION_ENABLED=true`)
+- interface de ejecución real preparada para intents con `side`, `qty`, `reference_price` y `order_type`
 - modo `mock` opcional para desarrollo
 
 ## Estructura

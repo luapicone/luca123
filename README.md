@@ -180,18 +180,19 @@ Se integró el preview de ejecución dry-run dentro del loop principal:
 
 ## Calibración paper trading
 
-Se relajaron los defaults para que el bot explore mejor oportunidades reales en paper:
+Se recalibraron los defaults con evidencia real de paper trading para evitar edge demasiado chico, concentración excesiva en BRUSDT y fills de baja calidad.
 
 Para generar un reporte resumido compartible por Discord: `python3 scripts/make_discord_report.py` (genera `discord_report.txt`).
 
-
-- `MIN_FILL_RATIO=0.20`
-- `ENTRY_THRESHOLD_PCT=0.10`
-- `MIN_QUALITY_SCORE=-0.05`
+- `MIN_FILL_RATIO=0.30`
+- `ENTRY_THRESHOLD_PCT=0.18`
+- `EXIT_THRESHOLD_PCT=0.06`
+- `MIN_QUALITY_SCORE=-0.02`
 - `MAX_SIGNAL_AGE_MS=5000`
-- `TOP_PAIRS_LIMIT=20`
-- `RANKING_MIN_SIGNALS=200`
-- `MAX_CANCEL_RATE=0.80`
+- `TOP_PAIRS_LIMIT=12`
+- `RANKING_MIN_SIGNALS=50`
+- `MAX_CANCEL_RATE=0.90`
+- universo sugerido sin `BRUSDT` para esta fase de calibración
 
 ## Bloque 8 incorporado
 

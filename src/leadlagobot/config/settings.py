@@ -39,6 +39,7 @@ class Settings(BaseModel):
     ranking_weight_win_rate: float = float(os.getenv('RANKING_WEIGHT_WIN_RATE', '25.0'))
     expected_net_edge_margin_pct: float = float(os.getenv('EXPECTED_NET_EDGE_MARGIN_PCT', '0.04'))
     min_exit_capture_ratio: float = float(os.getenv('MIN_EXIT_CAPTURE_RATIO', '0.40'))
+    max_cross_exchange_tick_age_ms: float = float(os.getenv('MAX_CROSS_EXCHANGE_TICK_AGE_MS', '3000'))
     ranking_signal_saturation: float = float(os.getenv('RANKING_SIGNAL_SATURATION', '250.0'))
     ranking_rejection_penalty_cap: float = float(os.getenv('RANKING_REJECTION_PENALTY_CAP', '0.75'))
     ranking_cancel_penalty_cap: float = float(os.getenv('RANKING_CANCEL_PENALTY_CAP', '0.75'))

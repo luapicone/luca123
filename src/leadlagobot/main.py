@@ -74,10 +74,49 @@ async def engine_loop(queue: asyncio.Queue):
 
         leader_tick = prices[tick.symbol]['binance']
         follower_tick = prices[tick.symbol]['bybit']
+        signal_age_ms = estimate_signal_age_ms(leader_tick, follower_tick)
+        stale_market_data = signal_age_ms > settings.max_cross_exchange_tick_age_ms
+
+        if stale_market_data:
+            account_snapshot = await fetch_account_snapshot()
+            reconciliation.write_snapshot(
+                executor.open_positions,
+                prices,
+                account_snapshot=account_snapshot,
+                execution_snapshot=execution_snapshot,
+            )
+            status.write(
+                {
+                    'balance': executor.balance,
+                    'open_positions': list(executor.open_positions.keys()),
+                    'tracked_symbol': tick.symbol,
+                    'top_symbols': sorted(list(metrics.get_top_symbols())),
+                    'latest_gap_pct': None,
+                    'latest_quality_score': None,
+                    'latest_signal_age_ms': signal_age_ms,
+                    'expected_cost_pct': None,
+                    'expected_net_edge_pct': None,
+                    'leader_price': leader_tick.price,
+                    'follower_price': follower_tick.price,
+                    'risk_ok': True,
+                    'risk_reason': 'stale_market_data',
+                    'margin_ok': True,
+                    'margin_reason': 'stale_market_data',
+                    'rules_ok': True,
+                    'rules_reason': 'stale_market_data',
+                    'daily_realized_pnl': risk.daily_realized_pnl,
+                    'cancel_rate': risk.cancel_rate(),
+                    'stale_market_data': True,
+                    'max_cross_exchange_tick_age_ms': settings.max_cross_exchange_tick_age_ms,
+                    'account_snapshot': account_snapshot,
+                    'execution_snapshot': execution_snapshot.get(tick.symbol, {}),
+                }
+            )
+            continue
+
         leader_price = normalized_price(leader_tick.price, leader_tick)
         follower_price = normalized_price(follower_tick.price, follower_tick)
         gap_pct = calculate_gap_pct(leader_price, follower_price)
-        signal_age_ms = estimate_signal_age_ms(leader_tick, follower_tick)
         quality_score = estimate_quality_score(gap_pct, signal_age_ms, follower_tick)
         metrics.register_signal(tick.symbol, signal_age_ms, quality_score)
 
@@ -218,6 +257,8 @@ async def engine_loop(queue: asyncio.Queue):
                 'qty_step': rules.qty_step if rules else None,
                 'min_qty': rules.min_qty if rules else None,
                 'min_notional': rules.min_notional if rules else None,
+                'stale_market_data': False,
+                'max_cross_exchange_tick_age_ms': settings.max_cross_exchange_tick_age_ms,
                 'account_snapshot': account_snapshot,
                 'execution_snapshot': execution_snapshot.get(tick.symbol, {}),
             }

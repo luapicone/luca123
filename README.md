@@ -269,3 +269,5 @@ Ejecutar:
 ```bash
 python3 tick_vampire_v3/main.py --dry-run
 ```
+
+Esta versión Block 2 ya corre un loop paper en tiempo real con snapshot de mercado, filtros básicos, apertura/cierre simulado y logging a SQLite.

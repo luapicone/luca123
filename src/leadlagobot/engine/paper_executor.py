@@ -12,10 +12,14 @@ class PaperExecutor:
     def _base_slippage_cost(self, notional: float) -> float:
         return notional * (settings.paper_slippage_bps / 10000)
 
+    def _aggregate_depth_multiplier(self) -> float:
+        return max(1.0, settings.depth_levels_assumed * 0.6)
+
     def _safe_visible_depth_usd(self, size: float | None, price: float | None) -> float:
         if not size or not price:
             return 0.0
-        return size * price * settings.paper_depth_safety_factor
+        base_depth = size * price * settings.paper_depth_safety_factor
+        return base_depth * self._aggregate_depth_multiplier()
 
     def _depth_penalty(self, notional: float, size: float | None, price: float | None) -> float:
         visible_depth_usd = self._safe_visible_depth_usd(size, price)

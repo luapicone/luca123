@@ -11,7 +11,7 @@ MVP inicial en **Python** con:
 - slippage configurable
 - slippage dinámico por profundidad visible
 - parámetro base para modelar varios niveles de profundidad (`DEPTH_LEVELS_ASSUMED`)
-- fills parciales simulados según profundidad visible
+- fills parciales simulados según profundidad visible agregada multi-nivel asumida
 - cancelaciones paper por profundidad insuficiente
 - posiciones abiertas/cerradas
 - logging de trades
@@ -28,6 +28,7 @@ MVP inicial en **Python** con:
 - dashboard CLI en vivo
 - dashboard web liviano
 - replay / backtest básico sobre logs
+- capa base separada de adapters de ejecución (`PaperExecutionAdapter` / `RealExecutionAdapter`)
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -106,8 +107,8 @@ PYTHONPATH=src python -m leadlagobot.backtest
 ## Próximos pasos
 
 1. reemplazar la profundidad asumida por order book multi-nivel real
-2. score de ranking más sofisticado
-3. preparar capa de ejecución real separada
+2. conectar `RealExecutionAdapter` a APIs reales con protección fuerte
+3. score de ranking más sofisticado
 4. automatizar rotación/adaptación de universo de pares
 5. añadir replay/backtest sobre logs históricos más ricos
 6. exponer dashboard web con filtros y charts

@@ -13,6 +13,7 @@
     th, td { padding: 8px; border-bottom: 1px solid #334155; text-align: left; font-size: 14px; }
     .muted { color: #94a3b8; }
     input { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #475569; background: #0b1220; color: #e2e8f0; }
+    canvas { width: 100%; height: 180px; background: #0b1220; border-radius: 8px; border: 1px solid #334155; }
   </style>
 </head>
 <body>
@@ -26,6 +27,10 @@
     <div class="card">
       <h2>Status</h2>
       <pre id="status">loading...</pre>
+    </div>
+    <div class="card">
+      <h2>Balance Chart</h2>
+      <canvas id="balanceChart" width="600" height="180"></canvas>
     </div>
     <div class="card">
       <h2>Top Ranking</h2>
@@ -44,6 +49,17 @@
         return await res.json();
       } catch {
         return fallback;
+      }
+    }
+
+    async function loadJsonLines(path) {
+      try {
+        const res = await fetch(path, { cache: 'no-store' });
+        if (!res.ok) return [];
+        const text = await res.text();
+        return text.split('\n').filter(Boolean).map(line => JSON.parse(line));
+      } catch {
+        return [];
       }
     }
 
@@ -69,16 +85,39 @@
         rows.map(([symbol, r]) => `<tr><td>${symbol}</td><td>${r.wins || 0}</td><td>${r.losses || 0}</td><td>${r.rejected || 0}</td><td>${r.cancelled || 0}</td><td>${(r.avg_signal_age_ms || 0).toFixed(0)}</td></tr>`).join('');
     }
 
+    function renderBalanceChart(history) {
+      const canvas = document.getElementById('balanceChart');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!history.length) return;
+      const last = history.slice(-60);
+      const values = last.map(x => x.balance || 0);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = Math.max(max - min, 1);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      last.forEach((point, i) => {
+        const x = (i / Math.max(last.length - 1, 1)) * (canvas.width - 20) + 10;
+        const y = canvas.height - (((point.balance || 0) - min) / span) * (canvas.height - 20) - 10;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
     async function refresh() {
       const filter = document.getElementById('symbolFilter').value;
-      const [status, ranking, metrics] = await Promise.all([
+      const [status, ranking, metrics, history] = await Promise.all([
         loadJson('../data/status.json', {}),
         loadJson('../data/pair_ranking.json', []),
         loadJson('../data/pair_metrics.json', {}),
+        loadJsonLines('../data/status_history.jsonl'),
       ]);
       renderStatus(status);
       renderRanking(ranking, filter);
       renderMetrics(metrics, filter);
+      renderBalanceChart(history);
     }
 
     document.getElementById('symbolFilter').addEventListener('input', refresh);

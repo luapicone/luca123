@@ -27,8 +27,9 @@ MVP inicial en **Python** con:
 - registro de órdenes canceladas en `data/cancelled_orders.jsonl`
 - snapshot de estado en vivo en `data/status.json`
 - dashboard CLI en vivo
-- dashboard web liviano
+- dashboard web liviano con filtro por símbolo y chart básico de balance
 - replay / backtest enriquecido sobre logs
+- persistencia histórica de snapshots de estado en `data/status_history.jsonl`
 - capa base separada de adapters de ejecución (`PaperExecutionAdapter` / `RealExecutionAdapter`)
 - guard de seguridad para bloquear ejecución real salvo habilitación explícita (`REAL_EXECUTION_ENABLED=true`)
 - interface de ejecución real preparada para intents con `side`, `qty`, `reference_price` y `order_type`
@@ -107,6 +108,7 @@ PYTHONPATH=src python -m leadlagobot.backtest
 - `data/rejected_opportunities.jsonl` → oportunidades descartadas y razón
 - `data/cancelled_orders.jsonl` → órdenes canceladas por falta de fill suficiente
 - `data/status.json` → estado vivo del bot
+- `data/status_history.jsonl` → historial de snapshots para replay/dashboard
 
 ## Próximos pasos
 

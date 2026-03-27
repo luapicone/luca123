@@ -2,6 +2,12 @@ from leadlagobot.config.settings import settings
 from leadlagobot.models.types import TickerSnapshot
 
 
+def normalized_price(price: float, tick: TickerSnapshot) -> float:
+    if tick.bid and tick.ask:
+        return (tick.bid + tick.ask) / 2
+    return price
+
+
 def calculate_gap_pct(leader_price: float, follower_price: float) -> float:
     return ((leader_price - follower_price) / follower_price) * 100
 

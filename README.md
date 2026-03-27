@@ -10,6 +10,7 @@ MVP inicial en **Python** con:
 - comisiones
 - slippage configurable
 - slippage dinámico por profundidad visible
+- parámetro base para modelar varios niveles de profundidad (`DEPTH_LEVELS_ASSUMED`)
 - fills parciales simulados según profundidad visible
 - cancelaciones paper por profundidad insuficiente
 - posiciones abiertas/cerradas
@@ -24,6 +25,9 @@ MVP inicial en **Python** con:
 - registro de oportunidades rechazadas en `data/rejected_opportunities.jsonl`
 - registro de órdenes canceladas en `data/cancelled_orders.jsonl`
 - snapshot de estado en vivo en `data/status.json`
+- dashboard CLI en vivo
+- dashboard web liviano
+- replay / backtest básico sobre logs
 - modo `mock` opcional para desarrollo
 
 ## Estructura
@@ -67,6 +71,24 @@ En otra terminal:
 PYTHONPATH=src python -m leadlagobot.dashboard
 ```
 
+## Dashboard web liviano
+
+```bash
+PYTHONPATH=src python -m leadlagobot.web_dashboard
+```
+
+Después abrir:
+
+```text
+http://localhost:8080
+```
+
+## Replay / Backtest básico
+
+```bash
+PYTHONPATH=src python -m leadlagobot.backtest
+```
+
 ### Modo de feed
 
 - `FEED_MODE=live` → websockets reales de Binance y Bybit
@@ -83,9 +105,9 @@ PYTHONPATH=src python -m leadlagobot.dashboard
 
 ## Próximos pasos
 
-1. agregar snapshots de order book más profundos
+1. reemplazar la profundidad asumida por order book multi-nivel real
 2. score de ranking más sofisticado
 3. preparar capa de ejecución real separada
 4. automatizar rotación/adaptación de universo de pares
-5. añadir replay/backtest sobre logs históricos
-6. exponer dashboard web liviano
+5. añadir replay/backtest sobre logs históricos más ricos
+6. exponer dashboard web con filtros y charts

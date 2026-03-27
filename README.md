@@ -184,15 +184,15 @@ Se recalibraron los defaults con evidencia real de paper trading para evitar edg
 
 Para generar un reporte resumido compartible por Discord: `python3 scripts/make_discord_report.py` (genera `discord_report.txt`).
 
-- `MIN_FILL_RATIO=0.30`
-- `ENTRY_THRESHOLD_PCT=0.18`
-- `EXIT_THRESHOLD_PCT=0.06`
-- `MIN_QUALITY_SCORE=-0.02`
+- `MIN_FILL_RATIO=0.45`
+- `ENTRY_THRESHOLD_PCT=0.24`
+- `EXIT_THRESHOLD_PCT=0.08`
+- `MIN_QUALITY_SCORE=0.02`
 - `MAX_SIGNAL_AGE_MS=5000`
-- `TOP_PAIRS_LIMIT=12`
-- `RANKING_MIN_SIGNALS=50`
-- `MAX_CANCEL_RATE=0.90`
-- universo sugerido sin `BRUSDT` para esta fase de calibración
+- `TOP_PAIRS_LIMIT=10`
+- `RANKING_MIN_SIGNALS=40`
+- `MAX_CANCEL_RATE=0.95`
+- universo sugerido sin `BRUSDT` ni `BEATUSDT` para esta fase de calibración
 
 ## Bloque 8 incorporado
 

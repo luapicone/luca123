@@ -13,6 +13,11 @@ class Settings(BaseModel):
     paper_depth_safety_factor: float = float(os.getenv('PAPER_DEPTH_SAFETY_FACTOR', '0.35'))
     depth_levels_assumed: int = int(os.getenv('DEPTH_LEVELS_ASSUMED', '5'))
     real_execution_enabled: bool = os.getenv('REAL_EXECUTION_ENABLED', 'false').strip().lower() == 'true'
+    dry_run_enabled: bool = os.getenv('DRY_RUN_ENABLED', 'true').strip().lower() == 'true'
+    binance_api_key: str = os.getenv('BINANCE_API_KEY', '')
+    binance_api_secret: str = os.getenv('BINANCE_API_SECRET', '')
+    bybit_api_key: str = os.getenv('BYBIT_API_KEY', '')
+    bybit_api_secret: str = os.getenv('BYBIT_API_SECRET', '')
     risk_enabled: bool = os.getenv('RISK_ENABLED', 'true').strip().lower() == 'true'
     kill_switch_file: str = os.getenv('KILL_SWITCH_FILE', 'data/KILL_SWITCH')
     min_fill_ratio: float = float(os.getenv('MIN_FILL_RATIO', '0.35'))

@@ -133,10 +133,20 @@ Se agregó una base operativa pre-real para validación:
 - reasons explícitos en `status.json` para riesgo / margen / reglas
 - snapshot visible de reglas activas del símbolo
 
+## Bloque 3 incorporado
+
+Se agregó una base seria pre-ejecución real:
+
+- sincronización de metadata real de Binance/Bybit (`metadata_sync.py`)
+- reemplazo de reglas default por metadata real cuando está disponible
+- preparación de firma HMAC para Binance y Bybit
+- dry-run de órdenes con auditoría en `data/execution_dry_run.jsonl`
+- variables de API y `DRY_RUN_ENABLED`
+
 ## Próximos pasos
 
-1. conectar `RealExecutionAdapter` a APIs reales con firma/autenticación
-2. reemplazar reglas default por exchange metadata real
+1. enviar órdenes reales firmadas con confirmaciones y límites fuertes
+2. sincronizar balances/posiciones reales por API
 3. automatizar rotación/adaptación de universo de pares
 4. añadir replay/backtest sobre logs históricos más ricos
 5. exponer dashboard web con charts más avanzados

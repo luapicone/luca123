@@ -182,6 +182,9 @@ Se integró el preview de ejecución dry-run dentro del loop principal:
 
 Se relajaron los defaults para que el bot explore mejor oportunidades reales en paper:
 
+Para generar un reporte resumido compartible por Discord: `python3 scripts/make_discord_report.py` (genera `discord_report.txt`).
+
+
 - `MIN_FILL_RATIO=0.20`
 - `ENTRY_THRESHOLD_PCT=0.10`
 - `MIN_QUALITY_SCORE=-0.05`

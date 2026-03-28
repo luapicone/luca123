@@ -133,3 +133,6 @@ def main():
     BACKTEST_REPORT.write_text('\n'.join(lines), encoding='utf8')
     print(f'Backtest report generated: {BACKTEST_REPORT}')
     print(f'Equity curve saved: {EQUITY_CURVE_CSV}')
+
+if __name__ == '__main__':
+    main()

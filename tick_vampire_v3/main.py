@@ -8,12 +8,26 @@ from pathlib import Path
 import ccxt
 
 from tick_vampire_v3.calendar import news_blackout_active
-from tick_vampire_v3.config import EXCHANGE, IGNORE_SESSIONS, INITIAL_BALANCE, RSI_PERIOD, SESSIONS, SYMBOL, VOLUME_MA_PERIOD
+from tick_vampire_v3.config import (
+    BREAKEVEN_TRIGGER_PCT,
+    EARLY_FAIL_BARS,
+    EXCHANGE,
+    IGNORE_SESSIONS,
+    INITIAL_BALANCE,
+    MAX_HOLD_SECONDS,
+    PRICE_WINDOW,
+    RSI_PERIOD,
+    SESSIONS,
+    SYMBOL,
+    TRAILING_GIVEBACK_PCT,
+    TRAILING_TRIGGER_PCT,
+    VOLUME_MA_PERIOD,
+)
 from tick_vampire_v3.db import init_db, insert_trade
 from tick_vampire_v3.execution import execute_trade
 from tick_vampire_v3.report import format_session_report
 from tick_vampire_v3.risk import risk_checks
-from tick_vampire_v3.signal import check_entry_signal, simple_rsi
+from tick_vampire_v3.signal import analyze_entry_signal, simple_rsi
 from tick_vampire_v3.state import BotState
 
 LOG_PATH = Path('tick_vampire_v3/tick_vampire.log')
@@ -41,18 +55,42 @@ def fetch_snapshot(exchange, symbol):
     return ticker, order_book
 
 
-def simulate_exit(direction, entry, tp, sl, last_price):
-    if direction == 'LONG':
-        if last_price >= tp:
-            return tp, 'TP'
-        if last_price <= sl:
-            return sl, 'SL'
+def update_open_trade(open_trade, last_price):
+    open_trade['bars_held'] += 1
+    if open_trade['direction'] == 'LONG':
+        move_pct = (last_price - open_trade['entry']) / open_trade['entry']
+        open_trade['best_price'] = max(open_trade['best_price'], last_price)
+        best_move_pct = (open_trade['best_price'] - open_trade['entry']) / open_trade['entry']
+        if best_move_pct >= BREAKEVEN_TRIGGER_PCT:
+            open_trade['sl'] = max(open_trade['sl'], open_trade['entry'])
+        if best_move_pct >= TRAILING_TRIGGER_PCT:
+            trail_floor = open_trade['best_price'] * (1 - TRAILING_GIVEBACK_PCT)
+            open_trade['sl'] = max(open_trade['sl'], trail_floor)
+        if last_price >= open_trade['tp']:
+            return open_trade['tp'], 'TP', True
+        if last_price <= open_trade['sl']:
+            return open_trade['sl'], 'SL', True
+        if open_trade['bars_held'] <= EARLY_FAIL_BARS and move_pct <= -BREAKEVEN_TRIGGER_PCT:
+            return last_price, 'EARLY_FAIL', True
     else:
-        if last_price <= tp:
-            return tp, 'TP'
-        if last_price >= sl:
-            return sl, 'SL'
-    return last_price, 'TIME'
+        move_pct = (open_trade['entry'] - last_price) / open_trade['entry']
+        open_trade['best_price'] = min(open_trade['best_price'], last_price)
+        best_move_pct = (open_trade['entry'] - open_trade['best_price']) / open_trade['entry']
+        if best_move_pct >= BREAKEVEN_TRIGGER_PCT:
+            open_trade['sl'] = min(open_trade['sl'], open_trade['entry'])
+        if best_move_pct >= TRAILING_TRIGGER_PCT:
+            trail_ceiling = open_trade['best_price'] * (1 + TRAILING_GIVEBACK_PCT)
+            open_trade['sl'] = min(open_trade['sl'], trail_ceiling)
+        if last_price <= open_trade['tp']:
+            return open_trade['tp'], 'TP', True
+        if last_price >= open_trade['sl']:
+            return open_trade['sl'], 'SL', True
+        if open_trade['bars_held'] <= EARLY_FAIL_BARS and move_pct <= -BREAKEVEN_TRIGGER_PCT:
+            return last_price, 'EARLY_FAIL', True
+
+    if time.time() - open_trade['opened_at'] >= MAX_HOLD_SECONDS:
+        return last_price, 'TIME', True
+    return last_price, 'HOLD', False
 
 
 def main():
@@ -63,39 +101,21 @@ def main():
     init_db()
     exchange = create_exchange()
     state = BotState(balance=INITIAL_BALANCE, session_open_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
-    closes = deque(maxlen=RSI_PERIOD + 5)
+    closes = deque(maxlen=max(RSI_PERIOD + 5, PRICE_WINDOW + 2))
     volumes = deque(maxlen=VOLUME_MA_PERIOD + 5)
     open_trade = None
     skipped = 0
     best = 0.0
     worst = 0.0
     current_session = None
+    reason_counts = {}
 
-    logging.info('Tick Vampire v3 block 4 started | dry_run=%s | exchange=%s | symbol=%s', args.dry_run, EXCHANGE, SYMBOL)
+    logging.info('Tick Vampire v3 block 5 started | dry_run=%s | exchange=%s | symbol=%s', args.dry_run, EXCHANGE, SYMBOL)
 
     while True:
         session_name = in_active_session()
         if not session_name:
             logging.info('outside active session')
-            if current_session is not None:
-                report = format_session_report({
-                    'datetime': datetime.now(timezone.utc).isoformat(),
-                    'session': current_session,
-                    'trades': state.total_trades_today,
-                    'wins': state.wins_today,
-                    'losses': state.losses_today,
-                    'wr': round((state.wins_today / max(state.total_trades_today, 1)) * 100, 2),
-                    'pnl': round(state.balance - state.session_open_balance, 6),
-                    'pnl_pct': round(((state.balance - state.session_open_balance) / max(state.session_open_balance, 1e-9)) * 100, 4),
-                    'start': round(state.session_open_balance, 6),
-                    'end': round(state.balance, 6),
-                    'best': round(best, 6),
-                    'worst': round(worst, 6),
-                    'skipped': skipped,
-                    'halt': state.halt_reason or 'no',
-                })
-                print(report)
-                current_session = None
             time.sleep(10)
             continue
 
@@ -110,6 +130,7 @@ def main():
             skipped = 0
             best = 0.0
             worst = 0.0
+            reason_counts = {}
 
         ok, reason = risk_checks(state)
         if not ok:
@@ -143,22 +164,27 @@ def main():
         if open_trade is None and len(closes) >= RSI_PERIOD + 1 and len(volumes) >= VOLUME_MA_PERIOD:
             rsi = simple_rsi(list(closes), RSI_PERIOD)
             volume_ma = sum(list(volumes)[-VOLUME_MA_PERIOD:]) / VOLUME_MA_PERIOD
-            direction = check_entry_signal(order_book, rsi, volume, volume_ma, spread, last_price, funding_rate)
-            logging.info('signal_check session=%s price=%s spread=%s rsi=%.2f volume=%s volume_ma=%s funding=%s direction=%s', session_name, last_price, spread, rsi, volume, round(volume_ma, 4), funding_rate, direction)
+            analysis = analyze_entry_signal(order_book, list(closes), rsi, volume, volume_ma, spread, last_price, funding_rate)
+            direction = analysis.get('direction')
+            reason_key = analysis.get('reason', 'unknown')
+            reason_counts[reason_key] = reason_counts.get(reason_key, 0) + 1
+            logging.info('signal_check session=%s price=%s spread=%s rsi=%.2f volume=%s volume_ma=%s funding=%s direction=%s reason=%s', session_name, last_price, spread, rsi, volume, round(volume_ma, 4), funding_rate, direction, reason_key)
             if direction:
                 reduced = state.reduced_size_trades_remaining > 0
                 trade = execute_trade(direction, state.balance, last_price, reduced=reduced)
                 trade['opened_at'] = time.time()
                 trade['session'] = session_name
+                trade['bars_held'] = 0
+                trade['best_price'] = last_price
+                trade['signal_reason'] = reason_key
                 open_trade = trade
-                logging.info('OPEN %s size=%s entry=%s tp=%s sl=%s fee=%s', direction, trade['size'], trade['entry'], trade['tp'], trade['sl'], trade['fee'])
+                logging.info('OPEN %s size=%s entry=%s tp=%s sl=%s fee=%s reason=%s', direction, trade['size'], trade['entry'], trade['tp'], trade['sl'], trade['fee'], reason_key)
             else:
                 skipped += 1
 
         elif open_trade is not None:
-            exit_price, reason_exit = simulate_exit(open_trade['direction'], open_trade['entry'], open_trade['tp'], open_trade['sl'], last_price)
-            closed = reason_exit in {'TP', 'SL'} or (time.time() - open_trade['opened_at'] >= 180)
-            logging.info('position_check direction=%s last=%s tp=%s sl=%s exit_reason=%s closed=%s', open_trade['direction'], last_price, open_trade['tp'], open_trade['sl'], reason_exit, closed)
+            exit_price, reason_exit, closed = update_open_trade(open_trade, last_price)
+            logging.info('position_check direction=%s last=%s tp=%s sl=%s reason=%s bars=%s closed=%s', open_trade['direction'], last_price, open_trade['tp'], open_trade['sl'], reason_exit, open_trade['bars_held'], closed)
             if closed:
                 if open_trade['direction'] == 'LONG':
                     gross = (exit_price - open_trade['entry']) * open_trade['size']
@@ -176,15 +202,15 @@ def main():
                 else:
                     state.losses_today += 1
                     state.consecutive_losses += 1
-                    if state.consecutive_losses >= 3:
-                        state.reduced_size_trades_remaining = 5
+                    if state.consecutive_losses >= 2:
+                        state.reduced_size_trades_remaining = 4
                 if state.reduced_size_trades_remaining > 0:
                     state.reduced_size_trades_remaining -= 1
                 state.session_peak_balance = max(state.session_peak_balance, state.balance)
                 best = max(best, pnl)
                 worst = min(worst, pnl)
                 insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, reason_exit, session_name, state.balance))
-                logging.info('CLOSE %s pnl=%s gross=%s fee=%s reason=%s balance=%s', open_trade['direction'], round(pnl, 6), round(gross, 6), round(fee, 6), reason_exit, round(state.balance, 6))
+                logging.info('CLOSE %s pnl=%s gross=%s fee=%s reason=%s balance=%s signal_reason=%s', open_trade['direction'], round(pnl, 6), round(gross, 6), round(fee, 6), reason_exit, round(state.balance, 6), open_trade.get('signal_reason'))
                 open_trade = None
 
         time.sleep(10)

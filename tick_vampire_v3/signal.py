@@ -1,9 +1,17 @@
-from collections import deque
-from statistics import mean
 from tick_vampire_v3.config import (
-    ORDER_BOOK_LEVELS, DELTA_IMBALANCE_MIN, RSI_MIN, RSI_MAX, SPREAD_MAX_PCT,
-    ROUND_NUMBER_BUFFER, FUNDING_RATE_MAX
+    DELTA_IMBALANCE_MIN,
+    FUNDING_RATE_MAX,
+    MICRO_PULLBACK_BARS,
+    MOMENTUM_MIN_PCT,
+    ORDER_BOOK_LEVELS,
+    PRICE_WINDOW,
+    RECLAIM_THRESHOLD_PCT,
+    ROUND_NUMBER_BUFFER,
+    RSI_MAX,
+    RSI_MIN,
+    SPREAD_MAX_PCT,
 )
+
 
 def simple_rsi(closes, period=14):
     if len(closes) < period + 1:
@@ -19,24 +27,79 @@ def simple_rsi(closes, period=14):
     return 100 - (100 / (1 + rs))
 
 
-def check_entry_signal(orderbook, rsi, volume, volume_ma, spread, eth_price, funding_rate):
+def _orderbook_bias(orderbook):
     bids = orderbook.get('bids', [])[:ORDER_BOOK_LEVELS]
     asks = orderbook.get('asks', [])[:ORDER_BOOK_LEVELS]
     bid_volume = sum(size for _, size in bids)
     ask_volume = sum(size for _, size in asks)
     if bid_volume <= 0 or ask_volume <= 0:
-        return None
-    long_signal = (bid_volume / ask_volume) >= DELTA_IMBALANCE_MIN
-    short_signal = (ask_volume / bid_volume) >= DELTA_IMBALANCE_MIN
-    rsi_ok = RSI_MIN <= rsi <= RSI_MAX
-    spread_ok = spread <= SPREAD_MAX_PCT * eth_price
-    volume_ok = volume > volume_ma
+        return None, bid_volume, ask_volume
+    ratio = bid_volume / ask_volume
+    if ratio >= DELTA_IMBALANCE_MIN:
+        return 'LONG', bid_volume, ask_volume
+    if (ask_volume / bid_volume) >= DELTA_IMBALANCE_MIN:
+        return 'SHORT', bid_volume, ask_volume
+    return None, bid_volume, ask_volume
+
+
+def _near_round_number(price):
     round_numbers = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]
-    round_number_ok = all(abs(eth_price - rn) / rn > ROUND_NUMBER_BUFFER for rn in round_numbers)
+    return any(abs(price - rn) / rn <= ROUND_NUMBER_BUFFER for rn in round_numbers)
+
+
+def analyze_entry_signal(orderbook, closes, rsi, volume, volume_ma, spread, price, funding_rate):
+    if len(closes) < max(PRICE_WINDOW, MICRO_PULLBACK_BARS + 3):
+        return {'direction': None, 'reason': 'warmup'}
+
+    spread_ok = spread <= SPREAD_MAX_PCT * max(price, 1e-9)
     funding_ok = abs(funding_rate) <= FUNDING_RATE_MAX
-    if all([rsi_ok, spread_ok, volume_ok, round_number_ok, funding_ok]):
-        if long_signal:
-            return 'LONG'
-        if short_signal:
-            return 'SHORT'
-    return None
+    volume_ok = volume >= volume_ma
+    rsi_mid_ok = RSI_MIN <= rsi <= RSI_MAX
+    round_ok = not _near_round_number(price)
+    ob_direction, bid_volume, ask_volume = _orderbook_bias(orderbook)
+    if not spread_ok:
+        return {'direction': None, 'reason': 'spread'}
+    if not funding_ok:
+        return {'direction': None, 'reason': 'funding'}
+    if not volume_ok:
+        return {'direction': None, 'reason': 'volume'}
+    if not round_ok:
+        return {'direction': None, 'reason': 'round_number'}
+    if not rsi_mid_ok:
+        return {'direction': None, 'reason': 'rsi_range'}
+    if ob_direction is None:
+        return {'direction': None, 'reason': 'orderbook_neutral'}
+
+    recent = closes[-PRICE_WINDOW:]
+    base = recent[0]
+    latest = recent[-1]
+    swing_low = min(recent)
+    swing_high = max(recent)
+    momentum_up = (latest - base) / max(base, 1e-9)
+    momentum_down = (base - latest) / max(base, 1e-9)
+    last3 = recent[-MICRO_PULLBACK_BARS:]
+
+    if ob_direction == 'LONG':
+        pulled_back = last3[0] >= last3[1] <= last3[2]
+        reclaim_ok = latest >= swing_low * (1 + RECLAIM_THRESHOLD_PCT)
+        if momentum_up >= MOMENTUM_MIN_PCT and pulled_back and reclaim_ok:
+            return {
+                'direction': 'LONG',
+                'reason': 'micro_pullback_long',
+                'momentum_pct': momentum_up,
+                'bid_volume': bid_volume,
+                'ask_volume': ask_volume,
+            }
+        return {'direction': None, 'reason': 'long_setup_incomplete'}
+
+    pulled_back = last3[0] <= last3[1] >= last3[2]
+    reclaim_ok = latest <= swing_high * (1 - RECLAIM_THRESHOLD_PCT)
+    if momentum_down >= MOMENTUM_MIN_PCT and pulled_back and reclaim_ok:
+        return {
+            'direction': 'SHORT',
+            'reason': 'micro_pullback_short',
+            'momentum_pct': momentum_down,
+            'bid_volume': bid_volume,
+            'ask_volume': ask_volume,
+        }
+    return {'direction': None, 'reason': 'short_setup_incomplete'}

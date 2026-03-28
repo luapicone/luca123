@@ -59,3 +59,13 @@ BACKTEST_REPORT = Path('momentum_pullback_v2_backtest_report.txt')
 EQUITY_CURVE_CSV = Path('momentum_pullback_v2_equity_curve.csv')
 
 STRATEGY_VARIANT = 'balanced'
+
+MAX_NOTIONAL_MULTIPLIER = 2.5
+MAX_SYMBOL_NOTIONAL = {
+    "BTC/USDT:USDT": 35.0,
+    "ETH/USDT:USDT": 30.0,
+    "SOL/USDT:USDT": 25.0,
+    "BNB/USDT:USDT": 25.0,
+    "XRP/USDT:USDT": 20.0,
+    "LINK/USDT:USDT": 20.0,
+}

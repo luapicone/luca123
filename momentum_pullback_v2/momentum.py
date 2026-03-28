@@ -82,7 +82,7 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] and candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_high + (atr_value * 0.2)
 
-    if retrace > PULLBACK_MAX_DEPTH or not reclaim_ok:
+    if retrace > (PULLBACK_MAX_DEPTH + 0.08) or not reclaim_ok:
         return {'rejected': 'pullback_retrace_or_reclaim', 'retrace': retrace, 'reclaim_ok': reclaim_ok}
 
     vol_ma = sma(volumes_5m[:-1], 20)

@@ -48,3 +48,6 @@ cat momentum_pullback_v2_summary.txt
 
 
 Current default variant is `balanced`: less strict than the original v2 launch so the bot can produce paper opportunities while still keeping structural filters and rejection diagnostics.
+
+
+Micro-account protection was added: per-trade notional is now capped by account balance and per-symbol ceilings so small balances do not create oversized paper positions.

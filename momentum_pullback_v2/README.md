@@ -37,3 +37,11 @@ No live trading is enabled here.
 
 
 No API keys are required for the current dry-run mode. It only fetches public market data and simulates trades locally; it does not send real orders.
+
+
+## One-command summary report
+
+```bash
+python3 momentum_pullback_v2/make_summary_report.py
+cat momentum_pullback_v2_summary.txt
+```

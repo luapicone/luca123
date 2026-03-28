@@ -75,11 +75,11 @@ def detect_momentum_pullback(candles_5m, candles_15m):
 
     if direction == 'LONG':
         retrace = (impulse_high - pullback_low) / impulse_size
-        reclaim_ok = candles_5m[-1][4] > active_pullback[-1][2] and candles_5m[-1][4] > candles_5m[-1][1]
+        reclaim_ok = candles_5m[-1][4] > candles_5m[-1][1] and candles_5m[-1][4] >= ((active_pullback[-1][2] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_low - (atr_value * 0.2)
     else:
         retrace = (pullback_high - impulse_low) / impulse_size
-        reclaim_ok = candles_5m[-1][4] < active_pullback[-1][3] and candles_5m[-1][4] < candles_5m[-1][1]
+        reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] and candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_high + (atr_value * 0.2)
 
     if retrace > PULLBACK_MAX_DEPTH or not reclaim_ok:
@@ -112,7 +112,8 @@ def detect_momentum_pullback(candles_5m, candles_15m):
     depth_quality = max(0.0, 1.0 - (retrace / PULLBACK_MAX_DEPTH))
     volume_quality = min((impulse_vol / max(vol_ma, 1e-9)) / VOLUME_IMPULSE_RATIO, 2.0) / 2.0
     reclaim_strength = min(abs(candles_5m[-1][4] - candles_5m[-1][1]) / max(entry * 0.001, 1e-9), 2.0) / 2.0
-    score = 0.30 * momentum_strength + 0.25 * depth_quality + 0.25 * volume_quality + 0.20 * reclaim_strength
+    structure_bonus = 0.15 if pullback_len <= 2 else 0.0
+    score = 0.28 * momentum_strength + 0.25 * depth_quality + 0.22 * volume_quality + 0.20 * reclaim_strength + structure_bonus
 
     return {
         'direction': direction,

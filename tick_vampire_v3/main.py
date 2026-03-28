@@ -18,14 +18,13 @@ from tick_vampire_v3.config import (
     PRICE_WINDOW,
     RSI_PERIOD,
     SESSIONS,
-    SYMBOL,
+    SYMBOLS,
     TRAILING_GIVEBACK_PCT,
     TRAILING_TRIGGER_PCT,
     VOLUME_MA_PERIOD,
 )
 from tick_vampire_v3.db import init_db, insert_trade
 from tick_vampire_v3.execution import execute_trade
-from tick_vampire_v3.report import format_session_report
 from tick_vampire_v3.risk import risk_checks
 from tick_vampire_v3.signal import analyze_entry_signal, simple_rsi
 from tick_vampire_v3.state import BotState
@@ -101,16 +100,17 @@ def main():
     init_db()
     exchange = create_exchange()
     state = BotState(balance=INITIAL_BALANCE, session_open_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
-    closes = deque(maxlen=max(RSI_PERIOD + 5, PRICE_WINDOW + 2))
-    volumes = deque(maxlen=VOLUME_MA_PERIOD + 5)
+    symbol_state = {
+        symbol: {
+            'closes': deque(maxlen=max(RSI_PERIOD + 5, PRICE_WINDOW + 2)),
+            'volumes': deque(maxlen=VOLUME_MA_PERIOD + 5),
+        }
+        for symbol in SYMBOLS
+    }
     open_trade = None
-    skipped = 0
-    best = 0.0
-    worst = 0.0
     current_session = None
-    reason_counts = {}
 
-    logging.info('Tick Vampire v3 block 5 started | dry_run=%s | exchange=%s | symbol=%s', args.dry_run, EXCHANGE, SYMBOL)
+    logging.info('Tick Vampire v3 multi-asset started | dry_run=%s | exchange=%s | symbols=%s', args.dry_run, EXCHANGE, ','.join(SYMBOLS))
 
     while True:
         session_name = in_active_session()
@@ -127,10 +127,6 @@ def main():
             state.total_trades_today = 0
             state.wins_today = 0
             state.losses_today = 0
-            skipped = 0
-            best = 0.0
-            worst = 0.0
-            reason_counts = {}
 
         ok, reason = risk_checks(state)
         if not ok:
@@ -142,49 +138,61 @@ def main():
             time.sleep(10)
             continue
 
-        try:
-            ticker, order_book = fetch_snapshot(exchange, SYMBOL)
-        except Exception as exc:
-            logging.warning('fetch error: %s', exc)
-            time.sleep(5)
-            continue
+        analyses = []
+        for symbol in SYMBOLS:
+            try:
+                ticker, order_book = fetch_snapshot(exchange, symbol)
+            except Exception as exc:
+                logging.warning('fetch error %s: %s', symbol, exc)
+                continue
+            last_price = ticker.get('last') or ticker.get('close') or 0.0
+            bid = ticker.get('bid') or last_price
+            ask = ticker.get('ask') or last_price
+            spread = max(ask - bid, 0.0)
+            volume = ticker.get('quoteVolume') or ticker.get('baseVolume') or 0.0
+            funding_rate = ticker.get('fundingRate') or 0.0
 
-        last_price = ticker.get('last') or ticker.get('close') or 0.0
-        bid = ticker.get('bid') or last_price
-        ask = ticker.get('ask') or last_price
-        spread = max(ask - bid, 0.0)
-        volume = ticker.get('quoteVolume') or ticker.get('baseVolume') or 0.0
-        funding_rate = ticker.get('fundingRate') or 0.0
+            symbol_state[symbol]['closes'].append(last_price)
+            symbol_state[symbol]['volumes'].append(volume)
 
-        closes.append(last_price)
-        volumes.append(volume)
-        state.hourly_volume = volume
-        state.volume_7d_avg = max(volume, 1.0)
+            closes = symbol_state[symbol]['closes']
+            volumes = symbol_state[symbol]['volumes']
+            if len(closes) < RSI_PERIOD + 1 or len(volumes) < VOLUME_MA_PERIOD:
+                continue
 
-        if open_trade is None and len(closes) >= RSI_PERIOD + 1 and len(volumes) >= VOLUME_MA_PERIOD:
             rsi = simple_rsi(list(closes), RSI_PERIOD)
             volume_ma = sum(list(volumes)[-VOLUME_MA_PERIOD:]) / VOLUME_MA_PERIOD
             analysis = analyze_entry_signal(order_book, list(closes), rsi, volume, volume_ma, spread, last_price, funding_rate)
-            direction = analysis.get('direction')
-            reason_key = analysis.get('reason', 'unknown')
-            reason_counts[reason_key] = reason_counts.get(reason_key, 0) + 1
-            logging.info('signal_check session=%s price=%s spread=%s rsi=%.2f volume=%s volume_ma=%s funding=%s direction=%s reason=%s', session_name, last_price, spread, rsi, volume, round(volume_ma, 4), funding_rate, direction, reason_key)
-            if direction:
+            analysis.update({'symbol': symbol, 'price': last_price, 'rsi': rsi, 'volume': volume, 'volume_ma': volume_ma, 'spread': spread})
+            analyses.append(analysis)
+            logging.info('signal_scan symbol=%s price=%s rsi=%.2f spread=%s direction=%s reason=%s score=%.3f', symbol, last_price, rsi, spread, analysis.get('direction'), analysis.get('reason'), analysis.get('score', 0.0))
+
+        if open_trade is None:
+            candidates = [a for a in analyses if a.get('direction')]
+            if candidates:
+                best = sorted(candidates, key=lambda x: x.get('score', 0.0), reverse=True)[0]
                 reduced = state.reduced_size_trades_remaining > 0
-                trade = execute_trade(direction, state.balance, last_price, reduced=reduced)
+                trade = execute_trade(best['direction'], state.balance, best['price'], reduced=reduced)
                 trade['opened_at'] = time.time()
                 trade['session'] = session_name
                 trade['bars_held'] = 0
-                trade['best_price'] = last_price
-                trade['signal_reason'] = reason_key
+                trade['best_price'] = best['price']
+                trade['symbol'] = best['symbol']
+                trade['signal_reason'] = best['reason']
+                trade['signal_score'] = best['score']
                 open_trade = trade
-                logging.info('OPEN %s size=%s entry=%s tp=%s sl=%s fee=%s reason=%s', direction, trade['size'], trade['entry'], trade['tp'], trade['sl'], trade['fee'], reason_key)
-            else:
-                skipped += 1
-
-        elif open_trade is not None:
+                logging.info('OPEN %s %s size=%s entry=%s tp=%s sl=%s fee=%s score=%.3f', best['symbol'], best['direction'], trade['size'], trade['entry'], trade['tp'], trade['sl'], trade['fee'], best['score'])
+        else:
+            symbol = open_trade['symbol']
+            try:
+                ticker, _ = fetch_snapshot(exchange, symbol)
+            except Exception as exc:
+                logging.warning('fetch error open symbol %s: %s', symbol, exc)
+                time.sleep(5)
+                continue
+            last_price = ticker.get('last') or ticker.get('close') or 0.0
             exit_price, reason_exit, closed = update_open_trade(open_trade, last_price)
-            logging.info('position_check direction=%s last=%s tp=%s sl=%s reason=%s bars=%s closed=%s', open_trade['direction'], last_price, open_trade['tp'], open_trade['sl'], reason_exit, open_trade['bars_held'], closed)
+            logging.info('position_check symbol=%s direction=%s last=%s tp=%s sl=%s reason=%s bars=%s closed=%s', symbol, open_trade['direction'], last_price, open_trade['tp'], open_trade['sl'], reason_exit, open_trade['bars_held'], closed)
             if closed:
                 if open_trade['direction'] == 'LONG':
                     gross = (exit_price - open_trade['entry']) * open_trade['size']
@@ -207,10 +215,8 @@ def main():
                 if state.reduced_size_trades_remaining > 0:
                     state.reduced_size_trades_remaining -= 1
                 state.session_peak_balance = max(state.session_peak_balance, state.balance)
-                best = max(best, pnl)
-                worst = min(worst, pnl)
-                insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, reason_exit, session_name, state.balance))
-                logging.info('CLOSE %s pnl=%s gross=%s fee=%s reason=%s balance=%s signal_reason=%s', open_trade['direction'], round(pnl, 6), round(gross, 6), round(fee, 6), reason_exit, round(state.balance, 6), open_trade.get('signal_reason'))
+                insert_trade((datetime.now(timezone.utc).isoformat(), f"{open_trade['symbol']} {open_trade['direction']}", open_trade['entry'], exit_price, open_trade['size'], pnl, fee, reason_exit, session_name, state.balance))
+                logging.info('CLOSE %s %s pnl=%s gross=%s fee=%s reason=%s balance=%s score=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(gross, 6), round(fee, 6), reason_exit, round(state.balance, 6), open_trade.get('signal_score', 0.0))
                 open_trade = None
 
         time.sleep(10)

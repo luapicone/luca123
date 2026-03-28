@@ -40,3 +40,8 @@ Current paper defaults were widened after the first live observation round so th
 ## Research note
 
 Current development is explicitly paper-first. The bot is being tightened toward a *no-trade-is-better-than-bad-trade* posture because the early versions proved that frequent low-quality entries were structurally unprofitable after fees.
+
+
+## Multi-asset paper mode
+
+Tick Vampire v3 now scans a curated liquid futures basket and only opens the highest-scoring setup at a time instead of forcing trades on a single market.

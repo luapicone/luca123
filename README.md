@@ -30,3 +30,8 @@ cat tick_vampire_v3_report.txt
 
 
 Para testing rápido, Tick Vampire v3 viene con `IGNORE_SESSIONS = True` por defecto en `tick_vampire_v3/config.py`, así puede correr a cualquier hora.
+
+
+## Paper calibration note
+
+Current paper defaults were widened after the first live observation round so that take-profit distance can exceed modeled costs and the research loop is not halted too aggressively by early drawdown.

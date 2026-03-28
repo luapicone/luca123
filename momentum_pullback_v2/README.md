@@ -51,3 +51,6 @@ Current default variant is `balanced`: less strict than the original v2 launch s
 
 
 Micro-account protection was added: per-trade notional is now capped by account balance and per-symbol ceilings so small balances do not create oversized paper positions.
+
+
+Balanced mode was further relaxed for live paper research: deeper pullbacks can pass when trend strength remains supportive, and impulse-volume validation now allows small tolerance around the moving average instead of demanding a clearly above-average spike every time.

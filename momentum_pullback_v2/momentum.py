@@ -82,7 +82,8 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] and candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_high + (atr_value * 0.2)
 
-    if retrace > (PULLBACK_MAX_DEPTH + 0.08) or not reclaim_ok:
+    adaptive_retrace_limit = PULLBACK_MAX_DEPTH + (0.08 if trend_strength >= 0.6 else 0.03)
+    if retrace > adaptive_retrace_limit or not reclaim_ok:
         return {'rejected': 'pullback_retrace_or_reclaim', 'retrace': retrace, 'reclaim_ok': reclaim_ok}
 
     vol_ma = sma(volumes_5m[:-1], 20)
@@ -90,7 +91,8 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         return {'rejected': 'volume_ma_unavailable'}
     impulse_vol = sum(c[5] for c in candles_5m[-(pullback_len + 3):-(pullback_len + 1)]) / 2
     pullback_vol = sum(c[5] for c in active_pullback) / len(active_pullback)
-    if impulse_vol < vol_ma * VOLUME_IMPULSE_RATIO:
+    volume_floor = vol_ma * VOLUME_IMPULSE_RATIO
+    if impulse_vol < volume_floor * 0.97:
         return {'rejected': 'impulse_volume_low', 'impulse_vol': impulse_vol, 'vol_ma': vol_ma}
     if pullback_vol > vol_ma * VOLUME_PULLBACK_RATIO:
         return {'rejected': 'pullback_volume_high', 'pullback_vol': pullback_vol, 'vol_ma': vol_ma}

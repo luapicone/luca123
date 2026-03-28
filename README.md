@@ -6,7 +6,7 @@ Bot paper-first de scalping para futuros.
 
 ```bash
 pip install -r requirements.txt
-python3 tick_vampire_v3/main.py --dry-run
+PYTHONPATH=. python3 -m tick_vampire_v3.main --dry-run
 ```
 
 ## Estado
@@ -35,3 +35,8 @@ Para testing rápido, Tick Vampire v3 viene con `IGNORE_SESSIONS = True` por def
 ## Paper calibration note
 
 Current paper defaults were widened after the first live observation round so that take-profit distance can exceed modeled costs and the research loop is not halted too aggressively by early drawdown.
+
+
+## Research note
+
+Current development is explicitly paper-first. The bot is being tightened toward a *no-trade-is-better-than-bad-trade* posture because the early versions proved that frequent low-quality entries were structurally unprofitable after fees.

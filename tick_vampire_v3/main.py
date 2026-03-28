@@ -27,6 +27,7 @@ from tick_vampire_v3.config import (
 from tick_vampire_v3.db import init_db, insert_trade
 from tick_vampire_v3.execution import execute_trade
 from tick_vampire_v3.risk import risk_checks
+from tick_vampire_v3.research import append_signal
 from tick_vampire_v3.signal import analyze_entry_signal, simple_rsi
 from tick_vampire_v3.state import BotState
 
@@ -185,6 +186,10 @@ def main():
                 trade['symbol'] = best['symbol']
                 trade['signal_reason'] = best['reason']
                 trade['signal_score'] = best['score']
+                trade['entry_rsi'] = best.get('rsi', 0.0)
+                trade['entry_volume'] = best.get('volume', 0.0)
+                trade['entry_volume_ma'] = best.get('volume_ma', 0.0)
+                trade['entry_spread'] = best.get('spread', 0.0)
                 open_trade = trade
                 logging.info('OPEN %s %s size=%s entry=%s tp=%s sl=%s fee=%s score=%.3f', best['symbol'], best['direction'], trade['size'], trade['entry'], trade['tp'], trade['sl'], trade['fee'], best['score'])
         else:
@@ -221,6 +226,22 @@ def main():
                     state.reduced_size_trades_remaining -= 1
                 state.session_peak_balance = max(state.session_peak_balance, state.balance)
                 insert_trade((datetime.now(timezone.utc).isoformat(), f"{open_trade['symbol']} {open_trade['direction']}", open_trade['entry'], exit_price, open_trade['size'], pnl, fee, reason_exit, session_name, state.balance))
+                append_signal({
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'symbol': open_trade['symbol'],
+                    'direction': open_trade['direction'],
+                    'reason': open_trade.get('signal_reason'),
+                    'score': open_trade.get('signal_score', 0.0),
+                    'price': open_trade['entry'],
+                    'rsi': open_trade.get('entry_rsi', 0.0),
+                    'volume': open_trade.get('entry_volume', 0.0),
+                    'volume_ma': open_trade.get('entry_volume_ma', 0.0),
+                    'spread': open_trade.get('entry_spread', 0.0),
+                    'outcome_reason': reason_exit,
+                    'pnl': pnl,
+                    'fee': fee,
+                    'bars_held': open_trade.get('bars_held', 0),
+                })
                 logging.info('CLOSE %s %s pnl=%s gross=%s fee=%s reason=%s balance=%s score=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(gross, 6), round(fee, 6), reason_exit, round(state.balance, 6), open_trade.get('signal_score', 0.0))
                 open_trade = None
 

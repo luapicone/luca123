@@ -48,3 +48,11 @@ Tick Vampire v3 now scans a curated liquid futures basket and only opens the hig
 
 
 Recent tuning added faster break-even, tighter trailing, shorter max hold and a momentum-decay exit to reduce the number of small time-based losers.
+
+
+## Research workflow
+
+```bash
+python3 tick_vampire_v3/make_research_report.py
+cat tick_vampire_v3_research_report.txt
+```

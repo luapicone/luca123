@@ -82,6 +82,7 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] and candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_high + (atr_value * 0.2)
 
+    trend_strength = min(abs(net_move_pct) / max(MOMENTUM_MIN_PCT, 1e-9), 2.0) / 2.0
     adaptive_retrace_limit = PULLBACK_MAX_DEPTH + (0.08 if trend_strength >= 0.6 else 0.03)
     if retrace > adaptive_retrace_limit or not reclaim_ok:
         return {'rejected': 'pullback_retrace_or_reclaim', 'retrace': retrace, 'reclaim_ok': reclaim_ok}

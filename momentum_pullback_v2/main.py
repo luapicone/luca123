@@ -22,7 +22,7 @@ def create_exchange():
     return getattr(ccxt, EXCHANGE_ID)({'enableRateLimit': True})
 
 
-def fetch_ohlcv_safe(exchange, symbol, timeframe, limit=200, retries=5):
+def fetch_ohlcv_safe(exchange, symbol, timeframe, limit=120, retries=5):
     delay = 1
     for attempt in range(retries):
         try:
@@ -46,8 +46,11 @@ def main():
     open_trade = None
 
     logging.info('Momentum Pullback v2 started | dry_run=%s | exchange=%s', args.dry_run, EXCHANGE_ID)
+    cycle = 0
 
     while True:
+        cycle += 1
+        logging.info('scan_cycle_start cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
         ok, reason = risk_checks(state)
         if not ok:
             logging.warning('risk blocked: %s', reason)
@@ -58,8 +61,10 @@ def main():
         symbol_to_candles_15m = {}
         for symbol in SYMBOLS:
             try:
-                symbol_to_candles_5m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=200)
-                symbol_to_candles_15m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_CONTEXT, limit=200)
+                logging.info('fetch_start cycle=%s symbol=%s tf=%s/%s', cycle, symbol, TF_ENTRY, TF_CONTEXT)
+                symbol_to_candles_5m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=120)
+                symbol_to_candles_15m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_CONTEXT, limit=120)
+                logging.info('fetch_done cycle=%s symbol=%s candles_5m=%s candles_15m=%s', cycle, symbol, len(symbol_to_candles_5m[symbol]), len(symbol_to_candles_15m[symbol]))
             except Exception as exc:
                 logging.warning('fetch failed %s: %s', symbol, exc)
 
@@ -71,6 +76,8 @@ def main():
                     trade['opened_at'] = datetime.now(timezone.utc)
                     open_trade = trade
                     logging.info('OPEN %s %s entry=%s sl=%s tp=%s size=%s score=%.3f', trade['symbol'], trade['direction'], trade['entry'], trade['sl'], trade['tp'], trade['size'], trade['score'])
+            else:
+                logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s', cycle, len(symbol_to_candles_5m))
         else:
             candles = symbol_to_candles_5m.get(open_trade['symbol'])
             if candles:
@@ -94,6 +101,7 @@ def main():
                     insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['symbol'], open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, exit_reason, state.balance))
                     logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6))
                     open_trade = None
+        logging.info('scan_cycle_end cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
         time.sleep(20)
 
 

@@ -34,3 +34,6 @@ The backtester writes:
 - `momentum_pullback_v2_equity_curve.csv`
 
 No live trading is enabled here.
+
+
+No API keys are required for the current dry-run mode. It only fetches public market data and simulates trades locally; it does not send real orders.

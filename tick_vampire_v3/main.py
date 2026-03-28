@@ -10,6 +10,7 @@ import ccxt
 from tick_vampire_v3.calendar import news_blackout_active
 from tick_vampire_v3.config import (
     BREAKEVEN_TRIGGER_PCT,
+    MOMENTUM_DECAY_EXIT_PCT,
     EARLY_FAIL_BARS,
     EXCHANGE,
     IGNORE_SESSIONS,
@@ -71,6 +72,8 @@ def update_open_trade(open_trade, last_price):
             return open_trade['sl'], 'SL', True
         if open_trade['bars_held'] <= EARLY_FAIL_BARS and move_pct <= -BREAKEVEN_TRIGGER_PCT:
             return last_price, 'EARLY_FAIL', True
+        if open_trade['bars_held'] >= 3 and best_move_pct > 0 and move_pct < MOMENTUM_DECAY_EXIT_PCT:
+            return last_price, 'MOMENTUM_DECAY', True
     else:
         move_pct = (open_trade['entry'] - last_price) / open_trade['entry']
         open_trade['best_price'] = min(open_trade['best_price'], last_price)
@@ -86,6 +89,8 @@ def update_open_trade(open_trade, last_price):
             return open_trade['sl'], 'SL', True
         if open_trade['bars_held'] <= EARLY_FAIL_BARS and move_pct <= -BREAKEVEN_TRIGGER_PCT:
             return last_price, 'EARLY_FAIL', True
+        if open_trade['bars_held'] >= 3 and best_move_pct > 0 and move_pct < MOMENTUM_DECAY_EXIT_PCT:
+            return last_price, 'MOMENTUM_DECAY', True
 
     if time.time() - open_trade['opened_at'] >= MAX_HOLD_SECONDS:
         return last_price, 'TIME', True

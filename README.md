@@ -45,3 +45,6 @@ Current development is explicitly paper-first. The bot is being tightened toward
 ## Multi-asset paper mode
 
 Tick Vampire v3 now scans a curated liquid futures basket and only opens the highest-scoring setup at a time instead of forcing trades on a single market.
+
+
+Recent tuning added faster break-even, tighter trailing, shorter max hold and a momentum-decay exit to reduce the number of small time-based losers.

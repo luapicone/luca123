@@ -45,3 +45,6 @@ No API keys are required for the current dry-run mode. It only fetches public ma
 python3 momentum_pullback_v2/make_summary_report.py
 cat momentum_pullback_v2_summary.txt
 ```
+
+
+Current default variant is `balanced`: less strict than the original v2 launch so the bot can produce paper opportunities while still keeping structural filters and rejection diagnostics.

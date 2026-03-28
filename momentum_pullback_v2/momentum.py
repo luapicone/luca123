@@ -22,7 +22,7 @@ from momentum_pullback_v2.indicators import atr, rsi, sma
 
 def detect_momentum_pullback(candles_5m, candles_15m):
     if len(candles_5m) < MOMENTUM_LOOKBACK + PULLBACK_MAX_CANDLES + 3 or len(candles_15m) < ATR_PERIOD + 5:
-        return None
+        return {'rejected': 'insufficient_history'}
 
     closes_5m = [c[4] for c in candles_5m]
     volumes_5m = [c[5] for c in candles_5m]
@@ -31,10 +31,10 @@ def detect_momentum_pullback(candles_5m, candles_15m):
 
     atr_value = atr(candles_5m, ATR_PERIOD)
     if not atr_value:
-        return None
+        return {'rejected': 'atr_unavailable'}
     atr_pct = atr_value / max(current_price, 1e-9)
     if atr_pct < ATR_MIN_PCT or atr_pct > ATR_MAX_PCT:
-        return None
+        return {'rejected': 'atr_regime', 'atr_pct': atr_pct}
 
     context_rsi = rsi(closes_15m, 14)
 
@@ -43,16 +43,16 @@ def detect_momentum_pullback(candles_5m, candles_15m):
     net_move_pct = (impulse_end_close - impulse_start_close) / max(impulse_start_close, 1e-9)
     direction = 'LONG' if net_move_pct >= MOMENTUM_MIN_PCT else 'SHORT' if net_move_pct <= -MOMENTUM_MIN_PCT else None
     if direction is None:
-        return None
+        return {'rejected': 'momentum_missing', 'momentum_pct': net_move_pct}
 
     if direction == 'LONG' and context_rsi > RSI_LONG_MAX:
-        return None
+        return {'rejected': 'context_rsi_long', 'context_rsi': context_rsi}
     if direction == 'SHORT' and context_rsi < RSI_SHORT_MIN:
-        return None
+        return {'rejected': 'context_rsi_short', 'context_rsi': context_rsi}
 
     pullback_slice = candles_5m[-(PULLBACK_MAX_CANDLES + 1):-1]
     if len(pullback_slice) < PULLBACK_MIN_CANDLES:
-        return None
+        return {'rejected': 'pullback_slice_short'}
 
     pullback_len = 0
     for candle in reversed(pullback_slice):
@@ -64,7 +64,7 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         else:
             break
     if pullback_len < PULLBACK_MIN_CANDLES or pullback_len > PULLBACK_MAX_CANDLES:
-        return None
+        return {'rejected': 'pullback_len', 'pullback_len': pullback_len}
 
     active_pullback = pullback_slice[-pullback_len:]
     impulse_high = max(c[2] for c in candles_5m[-(pullback_len + MOMENTUM_LOOKBACK + 1):-(pullback_len + 1)])
@@ -83,17 +83,17 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         structural_sl = pullback_high + (atr_value * 0.2)
 
     if retrace > PULLBACK_MAX_DEPTH or not reclaim_ok:
-        return None
+        return {'rejected': 'pullback_retrace_or_reclaim', 'retrace': retrace, 'reclaim_ok': reclaim_ok}
 
     vol_ma = sma(volumes_5m[:-1], 20)
     if not vol_ma:
-        return None
+        return {'rejected': 'volume_ma_unavailable'}
     impulse_vol = sum(c[5] for c in candles_5m[-(pullback_len + 3):-(pullback_len + 1)]) / 2
     pullback_vol = sum(c[5] for c in active_pullback) / len(active_pullback)
     if impulse_vol < vol_ma * VOLUME_IMPULSE_RATIO:
-        return None
+        return {'rejected': 'impulse_volume_low', 'impulse_vol': impulse_vol, 'vol_ma': vol_ma}
     if pullback_vol > vol_ma * VOLUME_PULLBACK_RATIO:
-        return None
+        return {'rejected': 'pullback_volume_high', 'pullback_vol': pullback_vol, 'vol_ma': vol_ma}
 
     entry = candles_5m[-1][4]
     atr_sl = atr_value * ATR_SL_MULTIPLIER

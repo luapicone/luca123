@@ -69,7 +69,7 @@ def main():
                 logging.warning('fetch failed %s: %s', symbol, exc)
 
         if open_trade is None:
-            signal = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
+            signal, diagnostics = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
             if signal:
                 trade = build_trade(signal, state.balance)
                 if trade:
@@ -77,7 +77,7 @@ def main():
                     open_trade = trade
                     logging.info('OPEN %s %s entry=%s sl=%s tp=%s size=%s score=%.3f', trade['symbol'], trade['direction'], trade['entry'], trade['sl'], trade['tp'], trade['size'], trade['score'])
             else:
-                logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s', cycle, len(symbol_to_candles_5m))
+                logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s diagnostics=%s', cycle, len(symbol_to_candles_5m), diagnostics)
         else:
             candles = symbol_to_candles_5m.get(open_trade['symbol'])
             if candles:

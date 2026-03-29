@@ -63,6 +63,13 @@ def detect_momentum_pullback(candles_5m, candles_15m):
             pullback_len += 1
         else:
             break
+    if pullback_len == 0:
+        candidate = pullback_slice[-1]
+        candidate_mid = (candidate[2] + candidate[3]) / 2
+        if direction == 'LONG' and candidate[4] < candidate_mid:
+            pullback_len = 1
+        elif direction == 'SHORT' and candidate[4] > candidate_mid:
+            pullback_len = 1
     if pullback_len < PULLBACK_MIN_CANDLES or pullback_len > PULLBACK_MAX_CANDLES:
         return {'rejected': 'pullback_len', 'pullback_len': pullback_len}
 
@@ -75,16 +82,17 @@ def detect_momentum_pullback(candles_5m, candles_15m):
 
     if direction == 'LONG':
         retrace = (impulse_high - pullback_low) / impulse_size
-        reclaim_ok = candles_5m[-1][4] > candles_5m[-1][1] and candles_5m[-1][4] >= ((active_pullback[-1][2] + active_pullback[-1][4]) / 2)
+        reclaim_ok = candles_5m[-1][4] > candles_5m[-1][1] or candles_5m[-1][4] >= ((active_pullback[-1][2] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_low - (atr_value * 0.2)
     else:
         retrace = (pullback_high - impulse_low) / impulse_size
-        reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] and candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
+        reclaim_ok = candles_5m[-1][4] < candles_5m[-1][1] or candles_5m[-1][4] <= ((active_pullback[-1][3] + active_pullback[-1][4]) / 2)
         structural_sl = pullback_high + (atr_value * 0.2)
 
     trend_strength = min(abs(net_move_pct) / max(MOMENTUM_MIN_PCT, 1e-9), 2.0) / 2.0
     adaptive_retrace_limit = PULLBACK_MAX_DEPTH + (0.08 if trend_strength >= 0.6 else 0.03)
-    if retrace > adaptive_retrace_limit or not reclaim_ok:
+    reclaim_override = pullback_len == 1 and retrace <= adaptive_retrace_limit * 0.55
+    if retrace > adaptive_retrace_limit or (not reclaim_ok and not reclaim_override):
         return {'rejected': 'pullback_retrace_or_reclaim', 'retrace': retrace, 'reclaim_ok': reclaim_ok}
 
     vol_ma = sma(volumes_5m[:-1], 20)

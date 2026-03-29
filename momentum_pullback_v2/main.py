@@ -98,8 +98,28 @@ def main():
                         state.consecutive_losses += 1
                     else:
                         state.consecutive_losses = 0
-                    insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['symbol'], open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, exit_reason, state.balance))
-                    logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6))
+                    insert_trade((
+                        datetime.now(timezone.utc).isoformat(),
+                        open_trade['symbol'],
+                        open_trade['direction'],
+                        open_trade['entry'],
+                        exit_price,
+                        open_trade['size'],
+                        pnl,
+                        fee,
+                        exit_reason,
+                        state.balance,
+                        open_trade.get('score'),
+                        open_trade.get('retrace'),
+                        open_trade.get('context_rsi'),
+                        open_trade.get('momentum_pct'),
+                        open_trade.get('pullback_len'),
+                        minutes_elapsed,
+                        open_trade.get('mfe'),
+                        open_trade.get('mae'),
+                        open_trade.get('peak_progress'),
+                    ))
+                    logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s mfe=%.6f mae=%.6f peak_progress=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6), open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
                     open_trade = None
         logging.info('scan_cycle_end cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
         time.sleep(20)

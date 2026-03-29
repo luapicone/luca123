@@ -20,9 +20,13 @@ def main():
     lines = ['===== MOMENTUM PULLBACK V2 SUMMARY =====']
 
     if DB_PATH.exists():
-        summary = fetchall("select count(*), coalesce(sum(pnl),0), coalesce(avg(pnl),0) from trades")
-        wins = fetchall("select coalesce(sum(case when pnl > 0 then 1 else 0 end),0), coalesce(sum(case when pnl <= 0 then 1 else 0 end),0), case when count(*) > 0 then round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) else 0 end from trades")
-        trades, total_pnl, avg_pnl = summary[0] if summary else (0, 0, 0)
+        summary = fetchall(
+            "select count(*), coalesce(sum(pnl),0), coalesce(avg(pnl),0), coalesce(avg(hold_minutes),0), coalesce(avg(mfe),0), coalesce(avg(mae),0), coalesce(avg(peak_progress),0) from trades"
+        )
+        wins = fetchall(
+            "select coalesce(sum(case when pnl > 0 then 1 else 0 end),0), coalesce(sum(case when pnl <= 0 then 1 else 0 end),0), case when count(*) > 0 then round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) else 0 end from trades"
+        )
+        trades, total_pnl, avg_pnl, avg_hold_minutes, avg_mfe, avg_mae, avg_peak_progress = summary[0] if summary else (0, 0, 0, 0, 0, 0, 0)
         win_count, loss_count, wr = wins[0] if wins else (0, 0, 0)
         lines += [
             f'trades: {trades}',
@@ -31,10 +35,14 @@ def main():
             f'win_rate_pct: {wr}',
             f'total_pnl: {round(total_pnl or 0, 6)}',
             f'avg_pnl: {round(avg_pnl or 0, 6)}',
+            f'avg_hold_minutes: {round(avg_hold_minutes or 0, 4)}',
+            f'avg_mfe: {round(avg_mfe or 0, 6)}',
+            f'avg_mae: {round(avg_mae or 0, 6)}',
+            f'avg_peak_progress: {round(avg_peak_progress or 0, 6)}',
             ''
         ]
         lines.append('===== LAST 50 TRADES =====')
-        rows = fetchall("select id,timestamp,symbol,direction,entry_price,exit_price,size,pnl,fee,exit_reason,balance_after from trades order by id desc limit 50")
+        rows = fetchall("select id,timestamp,symbol,direction,entry_price,exit_price,size,pnl,fee,exit_reason,balance_after,score,retrace,context_rsi,momentum_pct,pullback_len,hold_minutes,mfe,mae,peak_progress from trades order by id desc limit 50")
         if rows:
             for row in rows:
                 lines.append(str(row))

@@ -24,5 +24,16 @@ def build_trade(signal, balance):
     fee = size * signal['entry'] * FEE_PCT * 2
     slip = size * signal['entry'] * SLIPPAGE_PCT * 2
     trade = dict(signal)
-    trade.update({'size': size, 'fee': fee, 'slippage': slip, 'max_price': signal['entry'], 'min_price': signal['entry'], 'moved_to_be': False, 'trailing_active': False})
+    trade.update({
+        'size': size,
+        'fee': fee,
+        'slippage': slip,
+        'max_price': signal['entry'],
+        'min_price': signal['entry'],
+        'moved_to_be': False,
+        'trailing_active': False,
+        'mfe': 0.0,
+        'mae': 0.0,
+        'peak_progress': 0.0,
+    })
     return trade

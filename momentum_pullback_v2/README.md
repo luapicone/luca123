@@ -54,3 +54,5 @@ Micro-account protection was added: per-trade notional is now capped by account 
 
 
 Balanced mode was further relaxed for live paper research: deeper pullbacks can pass when trend strength remains supportive, and impulse-volume validation now allows small tolerance around the moving average instead of demanding a clearly above-average spike every time.
+
+Recent research upgrades added trade-quality telemetry (MFE/MAE, hold time, peak progress, score snapshot) and more aggressive protective exits for non-expanding trades, so paper sessions can reveal whether lack of edge comes from entries, targets, or hold management.

@@ -49,6 +49,10 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         return {'rejected': 'context_rsi_long', 'context_rsi': context_rsi}
     if direction == 'SHORT' and context_rsi < RSI_SHORT_MIN:
         return {'rejected': 'context_rsi_short', 'context_rsi': context_rsi}
+    if direction == 'LONG' and candles_15m[-1][4] < candles_15m[-1][1]:
+        return {'rejected': 'context_candle_against_long'}
+    if direction == 'SHORT' and candles_15m[-1][4] > candles_15m[-1][1]:
+        return {'rejected': 'context_candle_against_short'}
 
     pullback_slice = candles_5m[-(PULLBACK_MAX_CANDLES + 1):-1]
     if len(pullback_slice) < PULLBACK_MIN_CANDLES:
@@ -120,11 +124,12 @@ def detect_momentum_pullback(candles_5m, candles_15m):
         tp = entry - max(atr_value * ATR_TP_MULTIPLIER, sl_distance * TP_RATIO)
 
     momentum_strength = min(abs(net_move_pct) / MOMENTUM_MIN_PCT, 3.0) / 3.0
-    depth_quality = max(0.0, 1.0 - (retrace / PULLBACK_MAX_DEPTH))
-    volume_quality = min((impulse_vol / max(vol_ma, 1e-9)) / VOLUME_IMPULSE_RATIO, 2.0) / 2.0
+    depth_quality = max(0.0, 1.0 - (retrace / max(PULLBACK_MAX_DEPTH, 1e-9)))
+    volume_quality = min((impulse_vol / max(vol_ma, 1e-9)) / max(VOLUME_IMPULSE_RATIO, 1e-9), 2.0) / 2.0
     reclaim_strength = min(abs(candles_5m[-1][4] - candles_5m[-1][1]) / max(entry * 0.001, 1e-9), 2.0) / 2.0
-    structure_bonus = 0.15 if pullback_len <= 2 else 0.0
-    score = 0.28 * momentum_strength + 0.25 * depth_quality + 0.22 * volume_quality + 0.20 * reclaim_strength + structure_bonus
+    rsi_edge = min(abs(context_rsi - 50.0) / 15.0, 1.0)
+    structure_bonus = 0.10 if pullback_len <= 2 else 0.0
+    score = 0.22 * momentum_strength + 0.18 * depth_quality + 0.15 * volume_quality + 0.15 * reclaim_strength + 0.20 * rsi_edge + structure_bonus
 
     return {
         'direction': direction,

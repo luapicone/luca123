@@ -59,3 +59,6 @@ Recent research upgrades added trade-quality telemetry (MFE/MAE, hold time, peak
 
 
 Balanced mode now also accepts certain pullbacks in progress (including one-candle pullbacks that have not yet printed a fully opposite close) when structure and retrace remain controlled, so the scanner is less likely to miss valid setups during fast markets.
+
+
+The latest balanced research pass prioritizes selectivity over trade count: lower raw momentum threshold is now offset by stricter context confirmation (15m candle alignment, tighter RSI gating, higher score threshold) to push win-rate quality upward instead of blindly forcing more entries.

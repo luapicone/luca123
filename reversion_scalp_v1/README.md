@@ -22,3 +22,6 @@ PYTHONPATH=. python3 -m reversion_scalp_v1.main --dry-run
 ```bash
 python3 reversion_scalp_v1/make_summary_report.py && cat reversion_scalp_v1_summary.txt
 ```
+
+
+The current tuning was relaxed from extreme-reversion mode toward moderate reversion: smaller VWAP/Bollinger dislocations and softer RSI extremes can now qualify, while the score and reversal-candle confirmation still try to keep quality acceptable.

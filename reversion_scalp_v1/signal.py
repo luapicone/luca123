@@ -48,8 +48,8 @@ def detect_reversion_signal(candles_5m, candles_15m):
         return {'rejected': 'vwap_unavailable'}
     stretch = (current - day_vwap) / max(day_vwap, 1e-9)
 
-    long_reversal_candle = current_candle[4] > current_candle[1] and current_candle[4] > prev_candle[4]
-    short_reversal_candle = current_candle[4] < current_candle[1] and current_candle[4] < prev_candle[4]
+    long_reversal_candle = (current_candle[4] > current_candle[1] and current_candle[4] >= prev_candle[4]) or current_candle[4] > ((current_candle[2] + current_candle[3]) / 2)
+    short_reversal_candle = (current_candle[4] < current_candle[1] and current_candle[4] <= prev_candle[4]) or current_candle[4] < ((current_candle[2] + current_candle[3]) / 2)
 
     direction = None
     if intrabar_rsi is not None and context_rsi is not None:
@@ -75,7 +75,7 @@ def detect_reversion_signal(candles_5m, candles_15m):
         stretch_edge = min(abs(stretch) / (VWAP_STRETCH_MIN * 2), 1.0)
 
     mean_reclaim = min(abs(current - mid) / max(atr_value, 1e-9), 1.5) / 1.5
-    score = 0.30 * stretch_edge + 0.25 * context_edge + 0.20 * candle_quality + 0.25 * mean_reclaim
+    score = 0.28 * stretch_edge + 0.22 * context_edge + 0.20 * candle_quality + 0.20 * mean_reclaim + 0.10 * min(abs(zscore) / max(Z_SCORE_MIN, 1e-9), 1.5) / 1.5
     if score < SCORE_MIN_THRESHOLD:
         return {'rejected': 'score_below_threshold', 'score': score}
 

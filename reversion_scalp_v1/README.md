@@ -25,3 +25,6 @@ python3 reversion_scalp_v1/make_summary_report.py && cat reversion_scalp_v1_summ
 
 
 The current tuning was relaxed from extreme-reversion mode toward moderate reversion: smaller VWAP/Bollinger dislocations and softer RSI extremes can now qualify, while the score and reversal-candle confirmation still try to keep quality acceptable.
+
+
+The entry trigger was later softened so the strategy can enter on partial reversal confirmation too, not only on a very clean final candle. Context stretch/RSI/z-score still dominate; the last candle is now a softer gate instead of a hard blocker.

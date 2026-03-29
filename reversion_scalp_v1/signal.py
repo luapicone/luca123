@@ -48,14 +48,16 @@ def detect_reversion_signal(candles_5m, candles_15m):
         return {'rejected': 'vwap_unavailable'}
     stretch = (current - day_vwap) / max(day_vwap, 1e-9)
 
-    long_reversal_candle = (current_candle[4] > current_candle[1] and current_candle[4] >= prev_candle[4]) or current_candle[4] > ((current_candle[2] + current_candle[3]) / 2)
-    short_reversal_candle = (current_candle[4] < current_candle[1] and current_candle[4] <= prev_candle[4]) or current_candle[4] < ((current_candle[2] + current_candle[3]) / 2)
+    long_reversal_candle = ((current_candle[4] > current_candle[1] and current_candle[4] >= prev_candle[4]) or current_candle[4] > ((current_candle[2] + current_candle[3]) / 2) or current_candle[4] > prev_candle[3])
+    short_reversal_candle = ((current_candle[4] < current_candle[1] and current_candle[4] <= prev_candle[4]) or current_candle[4] < ((current_candle[2] + current_candle[3]) / 2) or current_candle[4] < prev_candle[2])
 
     direction = None
     if intrabar_rsi is not None and context_rsi is not None:
-        if intrabar_rsi <= RSI_LONG_MAX and context_rsi <= 48 and stretch <= -VWAP_STRETCH_MIN and zscore <= -Z_SCORE_MIN and long_reversal_candle:
+        long_trigger = (long_reversal_candle or (intrabar_rsi <= RSI_LONG_MAX - 2 and stretch <= -(VWAP_STRETCH_MIN * 1.35)))
+        short_trigger = (short_reversal_candle or (intrabar_rsi >= RSI_SHORT_MIN + 2 and stretch >= (VWAP_STRETCH_MIN * 1.35)))
+        if intrabar_rsi <= RSI_LONG_MAX and context_rsi <= 48 and stretch <= -VWAP_STRETCH_MIN and zscore <= -Z_SCORE_MIN and long_trigger:
             direction = 'LONG'
-        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= 52 and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_reversal_candle:
+        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= 52 and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_trigger:
             direction = 'SHORT'
 
     if direction is None:
@@ -64,13 +66,13 @@ def detect_reversion_signal(candles_5m, candles_15m):
     if direction == 'LONG':
         sl = current - min(atr_value * SL_ATR_MULTIPLIER, current * SL_PCT_MAX)
         tp = current + min(atr_value * TP_ATR_MULTIPLIER, current * TP_PCT_MAX)
-        candle_quality = min((current_candle[4] - current_candle[3]) / max(atr_value, 1e-9), 1.5) / 1.5
+        candle_quality = min(max(current_candle[4] - min(current_candle[3], prev_candle[3]), 0.0) / max(atr_value, 1e-9), 1.5) / 1.5
         context_edge = min((50 - context_rsi) / 20.0, 1.0)
         stretch_edge = min(abs(stretch) / (VWAP_STRETCH_MIN * 2), 1.0)
     else:
         sl = current + min(atr_value * SL_ATR_MULTIPLIER, current * SL_PCT_MAX)
         tp = current - min(atr_value * TP_ATR_MULTIPLIER, current * TP_PCT_MAX)
-        candle_quality = min((current_candle[2] - current_candle[4]) / max(atr_value, 1e-9), 1.5) / 1.5
+        candle_quality = min(max(max(current_candle[2], prev_candle[2]) - current_candle[4], 0.0) / max(atr_value, 1e-9), 1.5) / 1.5
         context_edge = min((context_rsi - 50) / 20.0, 1.0)
         stretch_edge = min(abs(stretch) / (VWAP_STRETCH_MIN * 2), 1.0)
 

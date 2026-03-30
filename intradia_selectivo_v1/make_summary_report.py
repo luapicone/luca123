@@ -41,6 +41,18 @@ def main():
         lines.append('')
         lines.append('===== EXIT REASONS =====')
         lines.extend(str(row) for row in fetchall("select exit_reason, count(*), round(sum(pnl),6) from trades group by exit_reason order by count(*) desc") or ['no exit stats'])
+
+        lines.append('')
+        lines.append('===== PNL BY SYMBOL + DIRECTION =====')
+        lines.extend(str(row) for row in fetchall("select symbol, direction, count(*), round(sum(pnl),6), round(avg(pnl),6), round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) from trades group by symbol, direction order by sum(pnl) desc") or ['no symbol direction stats'])
+
+        lines.append('')
+        lines.append('===== EXIT REASONS BY SYMBOL =====')
+        lines.extend(str(row) for row in fetchall("select symbol, exit_reason, count(*), round(sum(pnl),6) from trades group by symbol, exit_reason order by symbol asc, count(*) desc") or ['no symbol exit stats'])
+
+        lines.append('')
+        lines.append('===== QUALITY BY SYMBOL =====')
+        lines.extend(str(row) for row in fetchall("select symbol, count(*), round(avg(score),6), round(avg(hold_minutes),4), round(avg(mfe),6), round(avg(mae),6), round(avg(peak_progress),6) from trades group by symbol order by avg(score) desc") or ['no symbol quality stats'])
     else:
         lines += ['no trades db', '']
     lines.append('')

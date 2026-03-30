@@ -23,3 +23,6 @@ PYTHONPATH=. python3 -m intradia_selectivo_v1.main --dry-run
 ```bash
 python3 intradia_selectivo_v1/make_summary_report.py && cat intradia_selectivo_v1_summary.txt
 ```
+
+
+Latest conservative refinement: LINK was removed after being the only clearly negative symbol in the first 12h sample. Core signal/exit logic was intentionally left unchanged. Summary reporting was expanded with symbol+direction PnL, exit reasons by symbol, and per-symbol quality diagnostics (score / hold / MFE / MAE / peak progress) so future tuning can stay evidence-driven.

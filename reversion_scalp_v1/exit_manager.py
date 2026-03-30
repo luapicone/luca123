@@ -15,18 +15,18 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         if high >= trade['tp'] and not trade.get('trailing_active'):
             return trade['tp'], 'TP', True
         if not trade['moved_to_be'] and progress >= BE_TRIGGER_PCT:
-            trade['sl'] = max(trade['sl'], trade['entry'] + (trade['atr'] * 0.08))
+            trade['sl'] = max(trade['sl'], trade['entry'] + (trade['atr'] * 0.12))
             trade['moved_to_be'] = True
         if progress >= TRAILING_ACTIVATION_PCT:
             trade['trailing_active'] = True
-            trail = trade['max_price'] - (trade['atr'] * TRAILING_DISTANCE_ATR)
+            trail = trade['max_price'] - (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
             trade['sl'] = max(trade['sl'], trail)
         retrace = (trade['max_price'] - current_price) / max(trade['max_price'] - trade['entry'], 1e-9) if trade['max_price'] > trade['entry'] else 0.0
-        if progress >= 0.55 and retrace >= 0.35:
+        if progress >= 0.50 and retrace >= 0.30:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price <= trade['entry'] * (1 + SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True
-        if minutes_elapsed >= 8 and retrace >= 0.28 and rsi_5m < 50:
+        if minutes_elapsed >= 6 and retrace >= 0.24 and rsi_5m < 50:
             return current_price, 'MOMENTUM_DECAY', True
     else:
         trade['min_price'] = min(trade['min_price'], low)
@@ -39,18 +39,18 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         if low <= trade['tp'] and not trade.get('trailing_active'):
             return trade['tp'], 'TP', True
         if not trade['moved_to_be'] and progress >= BE_TRIGGER_PCT:
-            trade['sl'] = min(trade['sl'], trade['entry'] - (trade['atr'] * 0.08))
+            trade['sl'] = min(trade['sl'], trade['entry'] - (trade['atr'] * 0.12))
             trade['moved_to_be'] = True
         if progress >= TRAILING_ACTIVATION_PCT:
             trade['trailing_active'] = True
-            trail = trade['min_price'] + (trade['atr'] * TRAILING_DISTANCE_ATR)
+            trail = trade['min_price'] + (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
             trade['sl'] = min(trade['sl'], trail)
         retrace = (current_price - trade['min_price']) / max(trade['entry'] - trade['min_price'], 1e-9) if trade['min_price'] < trade['entry'] else 0.0
-        if progress >= 0.55 and retrace >= 0.35:
+        if progress >= 0.50 and retrace >= 0.30:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price >= trade['entry'] * (1 - SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True
-        if minutes_elapsed >= 8 and retrace >= 0.28 and rsi_5m > 50:
+        if minutes_elapsed >= 6 and retrace >= 0.24 and rsi_5m > 50:
             return current_price, 'MOMENTUM_DECAY', True
     if minutes_elapsed >= MAX_HOLD_MINUTES:
         return current_price, 'TIME', True

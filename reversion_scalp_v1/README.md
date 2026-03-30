@@ -40,3 +40,6 @@ For research runs, the daily trade cap was effectively removed so overnight sess
 
 
 Current refinement after the latest 12h session: the active research universe was narrowed to SOL/LINK/XRP, removing ETH and BNB due to clearly negative symbol-level contribution. Exit protection was also tightened slightly (earlier fast-fail, stronger BE lock, earlier giveback/momentum decay response) to prioritize win rate and net PnL quality over trade count.
+
+
+Latest refinement: LINK was removed after repeated contamination. GIVEBACK_EXIT now requires enough gross room to cover fees and leave real net edge before closing, and the global loss-pause was shortened for faster research iteration.

@@ -22,7 +22,9 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
             trail = trade['max_price'] - (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
             trade['sl'] = max(trade['sl'], trail)
         retrace = (trade['max_price'] - current_price) / max(trade['max_price'] - trade['entry'], 1e-9) if trade['max_price'] > trade['entry'] else 0.0
-        if progress >= 0.50 and retrace >= 0.30:
+        gross_buffer = trade['fee'] * 1.35
+        net_room = (current_price - trade['entry']) * trade['size'] if trade['direction'] == 'LONG' else (trade['entry'] - current_price) * trade['size']
+        if progress >= 0.58 and retrace >= 0.34 and net_room > gross_buffer:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price <= trade['entry'] * (1 + SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True
@@ -46,7 +48,9 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
             trail = trade['min_price'] + (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
             trade['sl'] = min(trade['sl'], trail)
         retrace = (current_price - trade['min_price']) / max(trade['entry'] - trade['min_price'], 1e-9) if trade['min_price'] < trade['entry'] else 0.0
-        if progress >= 0.50 and retrace >= 0.30:
+        gross_buffer = trade['fee'] * 1.35
+        net_room = (trade['entry'] - current_price) * trade['size']
+        if progress >= 0.58 and retrace >= 0.34 and net_room > gross_buffer:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price >= trade['entry'] * (1 - SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True

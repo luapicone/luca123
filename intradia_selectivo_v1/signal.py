@@ -9,8 +9,12 @@ from intradia_selectivo_v1.config import (
     MOMENTUM_MIN_PCT,
     PULLBACK_LOOKBACK,
     RSI_LONG_MIN,
+    REGIME_NEUTRAL_RSI_MAX,
+    REGIME_NEUTRAL_RSI_MIN,
     RSI_PERIOD,
     RSI_SHORT_MAX,
+    ALLOW_LONGS,
+    ALLOW_SHORTS,
     SCORE_MIN_THRESHOLD,
     SL_ATR_MULTIPLIER,
     SL_PCT_MAX,
@@ -46,8 +50,9 @@ def detect_intraday_signal(candles_15m, candles_1h):
     context_rsi = rsi(closes_1h, RSI_PERIOD)
     entry_rsi = rsi(closes_15m, RSI_PERIOD)
 
-    bullish_context = ema_fast_1h > ema_slow_1h and context_rsi >= RSI_LONG_MIN
-    bearish_context = ema_fast_1h < ema_slow_1h and context_rsi <= RSI_SHORT_MAX
+    regime_neutral = REGIME_NEUTRAL_RSI_MIN <= context_rsi <= REGIME_NEUTRAL_RSI_MAX
+    bullish_context = ALLOW_LONGS and ema_fast_1h > ema_slow_1h and context_rsi >= RSI_LONG_MIN
+    bearish_context = ALLOW_SHORTS and ema_fast_1h < ema_slow_1h and context_rsi <= RSI_SHORT_MAX
 
     impulse_ref = closes_15m[-(PULLBACK_LOOKBACK + 2)]
     momentum_pct = (current - impulse_ref) / max(impulse_ref, 1e-9)
@@ -57,9 +62,10 @@ def detect_intraday_signal(candles_15m, candles_1h):
     reclaim_body_pct = abs(current - candles_15m[-1][1]) / max(current, 1e-9)
 
     direction = None
+    short_pullback_pct = (current - recent_low) / max(current, 1e-9)
     if bullish_context and ema_fast_15m > ema_slow_15m and momentum_pct >= MOMENTUM_MIN_PCT and pullback_pct <= MAX_PULLBACK_PCT and current > prev and reclaim_body_pct >= MIN_RECLAIM_BODY_PCT:
         direction = 'LONG'
-    elif bearish_context and ema_fast_15m < ema_slow_15m and momentum_pct <= -MOMENTUM_MIN_PCT and ((current - recent_low) / max(current, 1e-9)) <= MAX_PULLBACK_PCT and current < prev and reclaim_body_pct >= MIN_RECLAIM_BODY_PCT:
+    elif bearish_context and ema_fast_15m < ema_slow_15m and momentum_pct <= -MOMENTUM_MIN_PCT and short_pullback_pct <= MAX_PULLBACK_PCT and current < prev and reclaim_body_pct >= MIN_RECLAIM_BODY_PCT:
         direction = 'SHORT'
 
     if direction is None:
@@ -68,7 +74,9 @@ def detect_intraday_signal(candles_15m, candles_1h):
             'momentum_pct': momentum_pct,
             'context_rsi': context_rsi,
             'entry_rsi': entry_rsi,
-            'pullback_pct': pullback_pct,
+            'pullback_pct': active_pullback_pct,
+            'short_pullback_pct': short_pullback_pct,
+            'regime_neutral': regime_neutral,
         }
 
     if direction == 'LONG':
@@ -84,7 +92,8 @@ def detect_intraday_signal(candles_15m, candles_1h):
 
     momentum_edge = min(abs(momentum_pct) / MOMENTUM_MIN_PCT, 2.0) / 2.0
     reclaim_edge = min(reclaim_body_pct / MIN_RECLAIM_BODY_PCT, 2.0) / 2.0
-    pullback_quality = max(0.0, 1.0 - (pullback_pct / max(MAX_PULLBACK_PCT, 1e-9)))
+    active_pullback_pct = pullback_pct if direction == 'LONG' else short_pullback_pct
+    pullback_quality = max(0.0, 1.0 - (active_pullback_pct / max(MAX_PULLBACK_PCT, 1e-9)))
     score = 0.28 * trend_edge + 0.24 * momentum_edge + 0.18 * reclaim_edge + 0.18 * pullback_quality + 0.12 * rsi_edge
     if score < SCORE_MIN_THRESHOLD:
         return {'rejected': 'score_below_threshold', 'score': score}
@@ -98,5 +107,5 @@ def detect_intraday_signal(candles_15m, candles_1h):
         'score': score,
         'momentum_pct': momentum_pct,
         'context_rsi': context_rsi,
-        'pullback_pct': pullback_pct,
+        'pullback_pct': active_pullback_pct,
     }

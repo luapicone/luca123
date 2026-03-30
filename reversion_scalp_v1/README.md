@@ -31,3 +31,6 @@ The entry trigger was later softened so the strategy can enter on partial revers
 
 
 Trade management was later tightened to protect favorable excursion earlier: break-even/trailing now activate sooner and a giveback-style exit can close trades that advanced meaningfully but then start returning too much of the move.
+
+
+Anti-overtrading protections were added: after each trade the same symbol+direction enters cooldown, with a longer cooldown after losses. ETH and BTC also use smaller notional caps to reduce damage from repeated counter-trend attempts.

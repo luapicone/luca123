@@ -35,6 +35,22 @@ def main():
             lines.extend(str(row) for row in rows)
         else:
             lines.append('no trades')
+
+        lines.append('')
+        lines.append('===== PNL BY SYMBOL =====')
+        symbol_rows = fetchall("select symbol, count(*), round(sum(pnl), 6), round(avg(pnl), 6), round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) from trades group by symbol order by sum(pnl) desc")
+        if symbol_rows:
+            lines.extend(str(row) for row in symbol_rows)
+        else:
+            lines.append('no symbol stats')
+
+        lines.append('')
+        lines.append('===== EXIT REASONS =====')
+        exit_rows = fetchall("select exit_reason, count(*), round(sum(pnl), 6) from trades group by exit_reason order by count(*) desc")
+        if exit_rows:
+            lines.extend(str(row) for row in exit_rows)
+        else:
+            lines.append('no exit stats')
     else:
         lines += ['no trades db', '']
     lines.append('')

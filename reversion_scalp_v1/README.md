@@ -34,3 +34,6 @@ Trade management was later tightened to protect favorable excursion earlier: bre
 
 
 Anti-overtrading protections were added: after each trade the same symbol+direction enters cooldown, with a longer cooldown after losses. ETH and BTC also use smaller notional caps to reduce damage from repeated counter-trend attempts.
+
+
+For research runs, the daily trade cap was effectively removed so overnight sessions can collect a fuller sample. Other protections remain in place (drawdown, cooldowns, consecutive-loss pause, per-symbol cooldown discipline). Summary reporting now also includes PnL by symbol and exit-reason breakdowns.

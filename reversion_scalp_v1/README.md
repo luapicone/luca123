@@ -28,3 +28,6 @@ The current tuning was relaxed from extreme-reversion mode toward moderate rever
 
 
 The entry trigger was later softened so the strategy can enter on partial reversal confirmation too, not only on a very clean final candle. Context stretch/RSI/z-score still dominate; the last candle is now a softer gate instead of a hard blocker.
+
+
+Trade management was later tightened to protect favorable excursion earlier: break-even/trailing now activate sooner and a giveback-style exit can close trades that advanced meaningfully but then start returning too much of the move.

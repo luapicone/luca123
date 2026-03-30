@@ -74,7 +74,7 @@ def detect_intraday_signal(candles_15m, candles_1h):
             'momentum_pct': momentum_pct,
             'context_rsi': context_rsi,
             'entry_rsi': entry_rsi,
-            'pullback_pct': active_pullback_pct,
+            'pullback_pct': pullback_pct,
             'short_pullback_pct': short_pullback_pct,
             'regime_neutral': regime_neutral,
         }

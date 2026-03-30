@@ -43,3 +43,6 @@ Current refinement after the latest 12h session: the active research universe wa
 
 
 Latest refinement: LINK was removed after repeated contamination. GIVEBACK_EXIT now requires enough gross room to cover fees and leave real net edge before closing, and the global loss-pause was shortened for faster research iteration.
+
+
+Latest safe refinement: before opening a trade, the scalper now requires the projected gross move to TP to exceed modeled fees/slippage by a minimum multiplier. This is meant to avoid structurally weak trades that cannot realistically leave enough net edge after costs.

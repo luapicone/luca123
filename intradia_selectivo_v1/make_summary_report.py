@@ -47,6 +47,10 @@ def main():
         lines.extend(str(row) for row in fetchall("select symbol, direction, count(*), round(sum(pnl),6), round(avg(pnl),6), round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) from trades group by symbol, direction order by sum(pnl) desc") or ['no symbol direction stats'])
 
         lines.append('')
+        lines.append('===== PNL BY DIRECTION =====')
+        lines.extend(str(row) for row in fetchall("select direction, count(*), round(sum(pnl),6), round(avg(pnl),6), round(100.0 * sum(case when pnl > 0 then 1 else 0 end) / count(*), 2) from trades group by direction order by sum(pnl) desc") or ['no direction stats'])
+
+        lines.append('')
         lines.append('===== EXIT REASONS BY SYMBOL =====')
         lines.extend(str(row) for row in fetchall("select symbol, exit_reason, count(*), round(sum(pnl),6) from trades group by symbol, exit_reason order by symbol asc, count(*) desc") or ['no symbol exit stats'])
 

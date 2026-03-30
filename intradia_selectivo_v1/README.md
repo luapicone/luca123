@@ -29,3 +29,6 @@ Latest conservative refinement: LINK was removed after being the only clearly ne
 
 
 Latest regime upgrade: the bot now explicitly supports both LONG and SHORT continuation flows instead of behaving as a mostly long-biased selective trend bot. This is meant to survive bearish regime shifts better while preserving the selective intraday architecture.
+
+
+Latest analytics refinement: the summary now includes an explicit PnL-by-direction section so LONG vs SHORT behavior can be audited directly before making larger regime changes.

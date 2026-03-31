@@ -91,10 +91,15 @@ def main():
                 current_price = candle[4]
                 minutes_elapsed = (datetime.now(timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
                 rsi_5m = rsi([c[4] for c in candles], 14)
-                exit_price, exit_reason, closed = manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
+                exit_price, exit_reason, closed, partial = manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
+                if partial:
+                    partial_size, partial_realized = partial
+                    logging.info('PARTIAL %s %s price=%s partial_size=%s realized=%.6f remaining_size=%s sl=%s', open_trade['symbol'], open_trade['direction'], current_price, partial_size, partial_realized, open_trade.get('remaining_size'), open_trade['sl'])
                 logging.info('MANAGE %s %s price=%s sl=%s tp=%s reason=%s minutes=%.2f', open_trade['symbol'], open_trade['direction'], current_price, open_trade['sl'], open_trade['tp'], exit_reason, minutes_elapsed)
                 if closed:
-                    gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
+                    remaining_size = open_trade.get('remaining_size', open_trade['size'])
+                    gross_remaining = (exit_price - open_trade['entry']) * remaining_size if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * remaining_size
+                    gross = gross_remaining + open_trade.get('realized_partial_pnl', 0.0)
                     fee = open_trade['fee'] + open_trade['slippage']
                     pnl = gross - fee
                     state.balance += pnl

@@ -5,7 +5,7 @@ def scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m):
     candidates = []
     diagnostics = {}
     for symbol, candles_5m in symbol_to_candles_5m.items():
-        signal = detect_reversion_signal(candles_5m, symbol_to_candles_15m.get(symbol, []))
+        signal = detect_reversion_signal(candles_5m, symbol_to_candles_15m.get(symbol, []), symbol=symbol)
         if not signal or 'rejected' in signal:
             diagnostics[symbol] = signal or {'rejected': 'no_signal_object'}
             continue

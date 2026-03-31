@@ -32,3 +32,6 @@ Latest regime upgrade: the bot now explicitly supports both LONG and SHORT conti
 
 
 Latest analytics refinement: the summary now includes an explicit PnL-by-direction section so LONG vs SHORT behavior can be audited directly before making larger regime changes.
+
+
+Latest sample-oriented refinement for the next 12h session: XRP was removed after repeated short-side concentration without net edge. The bot was relaxed slightly (momentum, pullback, reclaim, score, and management timing) to increase trade count while adding a minimum-net-edge gate so added frequency does not come entirely from structurally weak trades.

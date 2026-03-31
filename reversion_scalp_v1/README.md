@@ -46,3 +46,6 @@ Latest refinement: LINK was removed after repeated contamination. GIVEBACK_EXIT 
 
 
 Latest safe refinement: before opening a trade, the scalper now requires the projected gross move to TP to exceed modeled fees/slippage by a minimum multiplier. This is meant to avoid structurally weak trades that cannot realistically leave enough net edge after costs.
+
+
+Latest 12h-sample refinement: the scalper net-edge floor was relaxed slightly and the score threshold lowered a bit to recover enough trade frequency for evaluation, while preserving the cleaner SOL/XRP universe and the safer post-fee entry discipline.

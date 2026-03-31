@@ -10,9 +10,12 @@ from reversion_scalp_v1.config import (
     RSI_PERIOD,
     RSI_SHORT_MIN,
     SCORE_MIN_THRESHOLD,
+    SHORT_CONTINUATION_BLOCK_ATR,
+    SHORT_CONTINUATION_BLOCK_RECLAIM,
     SL_ATR_MULTIPLIER,
     SL_PCT_MAX,
     SOL_SCORE_THRESHOLD,
+    SOL_SHORT_SCORE_THRESHOLD,
     TP_ATR_MULTIPLIER,
     TP_PCT_MAX,
     VWAP_STRETCH_MIN,
@@ -59,8 +62,10 @@ def detect_reversion_signal(candles_5m, candles_15m, symbol=None):
 
     body = abs(current_candle[4] - current_candle[1])
     candle_body_atr = body / max(atr_value, 1e-9)
-    long_reclaim = (current_candle[4] - current_candle[3]) / max(current_candle[2] - current_candle[3], 1e-9)
-    short_reclaim = (current_candle[2] - current_candle[4]) / max(current_candle[2] - current_candle[3], 1e-9)
+    candle_range = max(current_candle[2] - current_candle[3], 1e-9)
+    long_reclaim = (current_candle[4] - current_candle[3]) / candle_range
+    short_reclaim = (current_candle[2] - current_candle[4]) / candle_range
+    upper_wick_atr = (current_candle[2] - max(current_candle[1], current_candle[4])) / max(atr_value, 1e-9)
 
     long_reversal_candle = (
         current_candle[4] > current_candle[1]
@@ -75,11 +80,17 @@ def detect_reversion_signal(candles_5m, candles_15m, symbol=None):
         and candle_body_atr >= MIN_REVERSAL_BODY_ATR
     )
 
+    short_continuation_risk = (
+        current_candle[4] >= prev_candle[4]
+        or short_reclaim < SHORT_CONTINUATION_BLOCK_RECLAIM
+        or upper_wick_atr < SHORT_CONTINUATION_BLOCK_ATR
+    )
+
     direction = None
     if intrabar_rsi is not None and context_rsi is not None:
         if intrabar_rsi <= RSI_LONG_MAX and context_rsi <= 48 and stretch <= -VWAP_STRETCH_MIN and zscore <= -Z_SCORE_MIN and long_reversal_candle:
             direction = 'LONG'
-        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= 52 and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_reversal_candle:
+        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= 52 and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_reversal_candle and not short_continuation_risk:
             direction = 'SHORT'
 
     if direction is None:
@@ -92,6 +103,8 @@ def detect_reversion_signal(candles_5m, candles_15m, symbol=None):
             'body_atr': candle_body_atr,
             'long_reclaim': long_reclaim,
             'short_reclaim': short_reclaim,
+            'upper_wick_atr': upper_wick_atr,
+            'short_continuation_risk': short_continuation_risk,
         }
 
     if direction == 'LONG':
@@ -119,6 +132,8 @@ def detect_reversion_signal(candles_5m, candles_15m, symbol=None):
         + 0.12 * min(abs(zscore) / max(Z_SCORE_MIN, 1e-9), 1.5) / 1.5
     )
     symbol_threshold = SYMBOL_SCORE_THRESHOLDS.get(symbol, SCORE_MIN_THRESHOLD)
+    if direction == 'SHORT' and symbol == 'SOL/USDT:USDT':
+        symbol_threshold = max(symbol_threshold, SOL_SHORT_SCORE_THRESHOLD)
     if score < symbol_threshold:
         return {'rejected': 'score_below_threshold', 'score': score, 'symbol_threshold': symbol_threshold}
 
@@ -134,4 +149,5 @@ def detect_reversion_signal(candles_5m, candles_15m, symbol=None):
         'zscore': zscore,
         'reclaim_quality': reclaim_quality,
         'body_atr': candle_body_atr,
+        'upper_wick_atr': upper_wick_atr,
     }

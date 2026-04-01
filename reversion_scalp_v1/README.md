@@ -49,3 +49,6 @@ Latest safe refinement: before opening a trade, the scalper now requires the pro
 
 
 Latest 12h-sample refinement: the scalper net-edge floor was relaxed slightly and the score threshold lowered a bit to recover enough trade frequency for evaluation, while preserving the cleaner SOL/XRP universe and the safer post-fee entry discipline.
+
+
+Latest rollback refinement: restored the pre-overhardening scalper base, then made only two surgical adjustments for the next validation run: SOL max notional was reduced from 20 to 16 to limit its contamination, and dead-trade handling was made slightly more aggressive (fast-fail 4→3 minutes, min progress 0.10→0.12, scratch threshold 0.0006→0.00045).

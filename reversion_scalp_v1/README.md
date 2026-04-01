@@ -49,7 +49,3 @@ Latest safe refinement: before opening a trade, the scalper now requires the pro
 
 
 Latest 12h-sample refinement: the scalper net-edge floor was relaxed slightly and the score threshold lowered a bit to recover enough trade frequency for evaluation, while preserving the cleaner SOL/XRP universe and the safer post-fee entry discipline.
-
-Latest protection-focused refinement: the scalper now requires a cleaner reversal candle (minimum body + reclaim quality), uses stricter symbol-specific score thresholds, cuts losing room slightly, and protects winners earlier. Trade management now also supports a small early partial take-profit with stop-locking on the remainder, plus more aggressive fast-fail / momentum-decay handling to reduce dead trades and oversized losers.
-
-Latest directional refinement: XRP was loosened slightly to restore sample flow, while `SOL SHORT` was made harder on purpose. Shorts now need clearer signs of actual exhaustion instead of simple overextension: stronger rejection structure, usable upper wick, and less evidence of ongoing continuation before a short can trigger.

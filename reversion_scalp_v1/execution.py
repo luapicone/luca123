@@ -1,4 +1,4 @@
-from reversion_scalp_v1.config import RISK_PER_TRADE, FEE_PCT, SLIPPAGE_PCT, MAX_NOTIONAL_MULTIPLIER, MAX_SYMBOL_NOTIONAL, MIN_NET_EDGE_MULTIPLIER, MICRO_PARTIAL_SIZE
+from reversion_scalp_v1.config import LEVERAGE, RISK_PER_TRADE, FEE_PCT, SLIPPAGE_PCT, MAX_NOTIONAL_MULTIPLIER, MAX_SYMBOL_NOTIONAL, MIN_NET_EDGE_MULTIPLIER
 
 
 def calculate_position_size(balance, entry_price, sl_price, symbol=None):
@@ -33,11 +33,6 @@ def build_trade(signal, balance):
     trade = dict(signal)
     trade.update({
         'size': size,
-        'initial_size': size,
-        'remaining_size': size,
-        'realized_partial_pnl': 0.0,
-        'partial_taken': False,
-        'partial_size': round(size * MICRO_PARTIAL_SIZE, 3),
         'fee': fee,
         'slippage': slip,
         'max_price': signal['entry'],

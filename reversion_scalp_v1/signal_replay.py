@@ -70,6 +70,16 @@ def apply_filter_variant(row, variant):
         return 0.55 <= (row.get('score') or 0) < 0.80
     if variant == 'exclude_score_above_070':
         return (row.get('score') or 0) <= 0.70
+    if variant == 'score_055_065':
+        return 0.55 <= (row.get('score') or 0) < 0.65
+    if variant == 'score_060_070':
+        return 0.60 <= (row.get('score') or 0) < 0.70
+    if variant == 'score_060_075':
+        return 0.60 <= (row.get('score') or 0) < 0.75
+    if variant == 'score_055_070_z_060_080':
+        score = row.get('score') or 0
+        z = abs(row.get('zscore') or 0)
+        return 0.55 <= score < 0.70 and 0.60 <= z < 0.80
     return True
 
 
@@ -201,7 +211,7 @@ def main():
     parser.add_argument('--variant', action='append', dest='variants')
     args = parser.parse_args()
     scenarios = args.scenarios or ['strict_tp_first', 'strict_sl_first', 'mfe_gt_mae', 'balanced']
-    variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore', 'score_055_070', 'score_055_080', 'exclude_score_above_070']
+    variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore', 'score_055_070', 'score_055_080', 'exclude_score_above_070', 'score_055_065', 'score_060_070', 'score_060_075', 'score_055_070_z_060_080']
     results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
     write_outputs(results, scenarios, variants)
 

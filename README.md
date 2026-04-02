@@ -103,3 +103,6 @@ Signal replay segmentation upgrade: the report now includes buckets for score, s
 
 
 Signal replay variant expansion: added score-band experiments (`score_055_070`, `score_055_080`, `exclude_score_above_070`) to test whether medium-score setups are cleaner than the highest-score cluster.
+
+
+Signal replay variant extension: added narrower score-band tests (`score_055_065`, `score_060_070`, `score_060_075`) plus one combined experiment (`score_055_070_z_060_080`) to search around the strongest medium-score pocket instead of only testing broad global filters.

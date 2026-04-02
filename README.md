@@ -78,3 +78,13 @@ Backtest execution refinement: exit management now approximates intrabar behavio
 
 
 Backtest live-alignment refinement: signal generation now also tests a synthetic partial 5m candle (mid-candle snapshot plus full close) before queuing an entry. This approximates the real bot polling every ~20s, where setups can appear before the final 5m close instead of only at strict bar close.
+
+
+## Reversion scalper signal replay
+
+Como complemento al backtest, se agregó `reversion_scalp_v1/signal_replay.py` para estudiar la hipótesis sin depender de una simulación de ejecución 1:1. Mide cuántas señales aparecen y qué MFE/MAE tienen en las velas siguientes. Uso sugerido:
+
+```bash
+python3.12 -m reversion_scalp_v1.signal_replay --days 30
+python3.12 -m reversion_scalp_v1.signal_replay --symbol SOL/USDT:USDT --days 30 --lookahead-bars 6
+```

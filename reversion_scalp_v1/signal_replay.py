@@ -1,0 +1,140 @@
+import argparse
+import csv
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import ccxt
+
+from reversion_scalp_v1.config import EXCHANGE_ID, SYMBOLS, TF_CONTEXT, TF_ENTRY
+from reversion_scalp_v1.signal import detect_reversion_signal
+
+REPORT_PATH = Path('reversion_scalp_v1_signal_replay_report.txt')
+CSV_PATH = Path('reversion_scalp_v1_signal_replay.csv')
+TIMEFRAME_MS = {'5m': 5 * 60 * 1000, '15m': 15 * 60 * 1000}
+
+
+def create_exchange():
+    return getattr(ccxt, EXCHANGE_ID)({'enableRateLimit': True})
+
+
+def fetch_all_ohlcv(exchange, symbol, timeframe, since_ms, until_ms=None, limit=1000):
+    rows = []
+    cursor = since_ms
+    step = TIMEFRAME_MS[timeframe]
+    until_ms = until_ms or int(datetime.now(timezone.utc).timestamp() * 1000)
+    while cursor < until_ms:
+        batch = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=cursor, limit=limit)
+        if not batch:
+            break
+        batch = [r for r in batch if r[0] >= cursor]
+        if rows:
+            batch = [r for r in batch if r[0] > rows[-1][0]]
+        if not batch:
+            cursor += step * limit
+            continue
+        rows.extend(batch)
+        cursor = batch[-1][0] + step
+        if batch[-1][0] >= until_ms - step:
+            break
+    return rows
+
+
+def replay(days=30, symbols=None, lookahead_bars=6):
+    exchange = create_exchange()
+    symbols = symbols or SYMBOLS
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since_ms = int(since.timestamp() * 1000)
+    until_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+
+    data_5m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_ENTRY, since_ms, until_ms) for symbol in symbols}
+    data_15m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_CONTEXT, since_ms, until_ms) for symbol in symbols}
+
+    results = []
+    for symbol in symbols:
+        candles5 = data_5m[symbol]
+        candles15 = data_15m[symbol]
+        for i in range(120, len(candles5) - lookahead_bars):
+            ts = candles5[i][0]
+            context15 = [c for c in candles15 if c[0] <= ts][-120:]
+            entry5 = candles5[:i + 1][-120:]
+            if len(entry5) < 120 or len(context15) < 120:
+                continue
+            signal = detect_reversion_signal(entry5, context15)
+            if not signal or 'rejected' in signal:
+                continue
+            future = candles5[i + 1:i + 1 + lookahead_bars]
+            entry = signal['entry']
+            if signal['direction'] == 'LONG':
+                mfe = max(c[2] for c in future) - entry
+                mae = entry - min(c[3] for c in future)
+                hit_tp = any(c[2] >= signal['tp'] for c in future)
+                hit_sl = any(c[3] <= signal['sl'] for c in future)
+            else:
+                mfe = entry - min(c[3] for c in future)
+                mae = max(c[2] for c in future) - entry
+                hit_tp = any(c[3] <= signal['tp'] for c in future)
+                hit_sl = any(c[2] >= signal['sl'] for c in future)
+            results.append({
+                'timestamp': datetime.fromtimestamp(ts / 1000, tz=timezone.utc).isoformat(),
+                'symbol': symbol,
+                'direction': signal['direction'],
+                'entry': entry,
+                'sl': signal['sl'],
+                'tp': signal['tp'],
+                'score': signal['score'],
+                'stretch': signal['stretch'],
+                'context_rsi': signal['context_rsi'],
+                'zscore': signal['zscore'],
+                'mfe': mfe,
+                'mae': mae,
+                'hit_tp': hit_tp,
+                'hit_sl': hit_sl,
+            })
+    return results
+
+
+def write_outputs(results):
+    total = len(results)
+    tp_hits = sum(1 for r in results if r['hit_tp'])
+    sl_hits = sum(1 for r in results if r['hit_sl'])
+    avg_mfe = sum(r['mfe'] for r in results) / total if total else 0.0
+    avg_mae = sum(r['mae'] for r in results) / total if total else 0.0
+    lines = [
+        '===== REVERSION SCALP V1 SIGNAL REPLAY =====',
+        f'signals: {total}',
+        f'hit_tp_pct: {(tp_hits / total * 100) if total else 0:.2f}',
+        f'hit_sl_pct: {(sl_hits / total * 100) if total else 0:.2f}',
+        f'avg_mfe: {avg_mfe:.6f}',
+        f'avg_mae: {avg_mae:.6f}',
+        '',
+        '===== SIGNALS BY SYMBOL =====',
+    ]
+    by_symbol = {}
+    for row in results:
+        by_symbol.setdefault(row['symbol'], []).append(row)
+    for symbol, rows in by_symbol.items():
+        lines.append(
+            f"{symbol}: signals={len(rows)} tp_hit_pct={sum(1 for r in rows if r['hit_tp'])/len(rows)*100:.2f} sl_hit_pct={sum(1 for r in rows if r['hit_sl'])/len(rows)*100:.2f} avg_mfe={sum(r['mfe'] for r in rows)/len(rows):.6f} avg_mae={sum(r['mae'] for r in rows)/len(rows):.6f}"
+        )
+    REPORT_PATH.write_text('\n'.join(lines), encoding='utf8')
+    with CSV_PATH.open('w', newline='', encoding='utf8') as f:
+        writer = csv.DictWriter(f, fieldnames=list(results[0].keys()) if results else ['timestamp'])
+        writer.writeheader()
+        if results:
+            writer.writerows(results)
+    print(f'Signal replay report generated: {REPORT_PATH}')
+    print(f'Signal replay CSV generated: {CSV_PATH}')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--days', type=int, default=30)
+    parser.add_argument('--symbol', action='append', dest='symbols')
+    parser.add_argument('--lookahead-bars', type=int, default=6)
+    args = parser.parse_args()
+    results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
+    write_outputs(results)
+
+
+if __name__ == '__main__':
+    main()

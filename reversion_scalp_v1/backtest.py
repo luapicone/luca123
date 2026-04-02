@@ -61,8 +61,8 @@ def intrabar_path(candle, direction):
     low = candle[3]
     close = candle[4]
     if direction == 'LONG':
-        return [open_price, low, high, close]
-    return [open_price, high, low, close]
+        return [open_price, (open_price + low) / 2, low, (low + high) / 2, high, (high + close) / 2, close]
+    return [open_price, (open_price + high) / 2, high, (high + low) / 2, low, (low + close) / 2, close]
 
 
 def synthesize_signal_from_partial_candle(candles_5m, candles_15m):
@@ -70,10 +70,10 @@ def synthesize_signal_from_partial_candle(candles_5m, candles_15m):
         return None
     base = candles_5m[-1]
     o, h, l, c, v = base[1], base[2], base[3], base[4], base[5]
-    candidates = [
-        [base[0], o, max(o, h), min(o, l), (o + c) / 2, max(v * 0.5, 1.0)],
-        [base[0], o, h, l, c, v],
-    ]
+    path = [o, (o + l) / 2, l, (l + c) / 2, (o + h) / 2, h, (h + c) / 2, c]
+    candidates = []
+    for idx, point in enumerate(path):
+        candidates.append([base[0], o, max(o, point), min(o, point), point, max(v * ((idx + 1) / len(path)), 1.0)])
     best = None
     for partial in candidates:
         synthetic_5m = candles_5m[:-1] + [partial]

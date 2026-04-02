@@ -106,3 +106,6 @@ Signal replay variant expansion: added score-band experiments (`score_055_070`, 
 
 
 Signal replay variant extension: added narrower score-band tests (`score_055_065`, `score_060_070`, `score_060_075`) plus one combined experiment (`score_055_070_z_060_080`) to search around the strongest medium-score pocket instead of only testing broad global filters.
+
+
+Focused stability check: `signal_replay.py` now supports `--window-check`, which appends 15d/30d/45d/60d comparisons only for the two strongest candidate filters: `score_055_065` and `score_055_070_z_060_080`.

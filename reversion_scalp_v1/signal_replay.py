@@ -209,11 +209,28 @@ def main():
     parser.add_argument('--lookahead-bars', type=int, default=6)
     parser.add_argument('--scenario', action='append', dest='scenarios')
     parser.add_argument('--variant', action='append', dest='variants')
+    parser.add_argument('--window-check', action='store_true')
     args = parser.parse_args()
     scenarios = args.scenarios or ['strict_tp_first', 'strict_sl_first', 'mfe_gt_mae', 'balanced']
     variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore', 'score_055_070', 'score_055_080', 'exclude_score_above_070', 'score_055_065', 'score_060_070', 'score_060_075', 'score_055_070_z_060_080']
     results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
     write_outputs(results, scenarios, variants)
+    if args.window_check:
+        extra_windows = [15, 30, 45, 60]
+        focus_variants = ['score_055_065', 'score_055_070_z_060_080']
+        lines = ['\n===== WINDOW STABILITY CHECK =====']
+        for window in extra_windows:
+            subset_results = replay(days=window, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
+            lines.append(f'-- {window}d --')
+            for variant in focus_variants:
+                subset = [row for row in subset_results if apply_filter_variant(row, variant)]
+                total = len(subset)
+                lines.append(f'{variant}: signals={total}')
+                for scenario in scenarios:
+                    hits = sum(1 for row in subset if classify_signal(row, scenario))
+                    lines.append(f'  - {scenario}: favorable_pct={(hits / total * 100) if total else 0:.2f}')
+        with REPORT_PATH.open('a', encoding='utf8') as f:
+            f.write('\n'.join(lines))
 
 
 if __name__ == '__main__':

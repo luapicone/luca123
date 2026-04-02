@@ -59,10 +59,10 @@ def run_backtest(days=30, symbols=None):
 
     state = BotState(balance=INITIAL_BALANCE, daily_start_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
     open_trade = None
+    pending_trade = None
     trades = []
     equity = []
 
-    index_maps_15m = {symbol: 0 for symbol in symbols}
     all_times = sorted({row[0] for symbol in symbols for row in data_5m[symbol]})
 
     for ts in all_times:
@@ -77,7 +77,13 @@ def run_backtest(days=30, symbols=None):
                 symbol_to_candles_5m[symbol] = candles5[-120:]
                 symbol_to_candles_15m[symbol] = candles15[-120:]
 
-        if open_trade is None:
+        if pending_trade and pending_trade['activate_at'] == ts and open_trade is None:
+            trade = pending_trade['trade']
+            trade['opened_at'] = timestamp
+            open_trade = trade
+            pending_trade = None
+
+        if open_trade is None and pending_trade is None:
             ok, _ = risk_checks(state)
             if ok and symbol_to_candles_5m:
                 signal, _diagnostics = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
@@ -88,11 +94,17 @@ def run_backtest(days=30, symbols=None):
                     if not cooldown_until or now_ts >= cooldown_until:
                         trade = build_trade(signal, state.balance)
                         if trade:
-                            trade['opened_at'] = timestamp
-                            open_trade = trade
-        else:
+                            next_ts = None
+                            symbol_rows = data_5m[signal['symbol']]
+                            for row in symbol_rows:
+                                if row[0] > ts:
+                                    next_ts = row[0]
+                                    break
+                            if next_ts is not None:
+                                pending_trade = {'trade': trade, 'activate_at': next_ts}
+        elif open_trade is not None:
             candles = symbol_to_candles_5m.get(open_trade['symbol'])
-            if candles:
+            if candles and candles[-1][0] > int(open_trade['opened_at'].timestamp() * 1000):
                 candle = candles[-1]
                 current_price = candle[4]
                 minutes_elapsed = (timestamp - open_trade['opened_at']).total_seconds() / 60.0

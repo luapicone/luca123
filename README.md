@@ -66,3 +66,6 @@ Se agregó `reversion_scalp_v1/backtest.py` para simular la lógica del scalper 
 python3.12 -m reversion_scalp_v1.backtest --days 30
 python3.12 -m reversion_scalp_v1.backtest --symbol SOL/USDT:USDT --days 30
 ```
+
+
+Backtest correction: the scalper backtest now stages entries for the next 5m candle and does not allow trade management on the same candle that generated the signal. This makes the simulation more aligned with the live runtime and avoids same-bar entry/exit distortion.

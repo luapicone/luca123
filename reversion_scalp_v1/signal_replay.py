@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -52,6 +53,18 @@ def classify_signal(row, scenario):
     if scenario == 'balanced':
         return (row['hit_tp'] and row['mfe'] >= row['mae']) or (row['mfe'] > row['mae'] * 1.1)
     return False
+
+
+def apply_filter_variant(row, variant):
+    if variant == 'baseline':
+        return True
+    if variant == 'higher_score':
+        return (row.get('score') or 0) >= 0.6
+    if variant == 'deeper_stretch':
+        return abs(row.get('stretch') or 0) >= 0.00045
+    if variant == 'stronger_zscore':
+        return abs(row.get('zscore') or 0) >= 0.65
+    return True
 
 
 def replay(days=30, symbols=None, lookahead_bars=6):
@@ -108,7 +121,7 @@ def replay(days=30, symbols=None, lookahead_bars=6):
     return results
 
 
-def write_outputs(results, scenarios):
+def write_outputs(results, scenarios, variants):
     total = len(results)
     tp_hits = sum(1 for r in results if r['hit_tp'])
     sl_hits = sum(1 for r in results if r['hit_sl'])
@@ -127,6 +140,14 @@ def write_outputs(results, scenarios):
     for scenario in scenarios:
         hits = sum(1 for row in results if classify_signal(row, scenario))
         lines.append(f'{scenario}: favorable_pct={(hits / total * 100) if total else 0:.2f}')
+    lines += ['', '===== FILTER VARIANTS =====']
+    for variant in variants:
+        subset = [row for row in results if apply_filter_variant(row, variant)]
+        subset_total = len(subset)
+        lines.append(f'{variant}: signals={subset_total}')
+        for scenario in scenarios:
+            hits = sum(1 for row in subset if classify_signal(row, scenario))
+            lines.append(f'  - {scenario}: favorable_pct={(hits / subset_total * 100) if subset_total else 0:.2f}')
     lines += ['', '===== SIGNALS BY SYMBOL =====']
     by_symbol = {}
     for row in results:
@@ -151,10 +172,12 @@ def main():
     parser.add_argument('--symbol', action='append', dest='symbols')
     parser.add_argument('--lookahead-bars', type=int, default=6)
     parser.add_argument('--scenario', action='append', dest='scenarios')
+    parser.add_argument('--variant', action='append', dest='variants')
     args = parser.parse_args()
     scenarios = args.scenarios or ['strict_tp_first', 'strict_sl_first', 'mfe_gt_mae', 'balanced']
+    variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore']
     results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
-    write_outputs(results, scenarios)
+    write_outputs(results, scenarios, variants)
 
 
 if __name__ == '__main__':

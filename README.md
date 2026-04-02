@@ -94,3 +94,6 @@ Backtest calibration refinement: partial-candle signal synthesis now evaluates m
 
 
 Signal replay upgrade: `reversion_scalp_v1/signal_replay.py` now reports scenario scores to compare signal quality under different interpretations (`strict_tp_first`, `strict_sl_first`, `mfe_gt_mae`, `balanced`). This makes it usable as a strategy-comparison lab even when full execution backtesting is still imperfect.
+
+
+Signal replay comparison upgrade: the replay tool can now compare multiple filter variants (`baseline`, `higher_score`, `deeper_stretch`, `stronger_zscore`) and report how each one changes signal count plus scenario-quality percentages. This is the main research surface for deciding whether a stricter filter is worth carrying into the real bot.

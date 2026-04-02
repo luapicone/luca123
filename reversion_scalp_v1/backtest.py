@@ -54,6 +54,16 @@ def fetch_all_ohlcv(exchange, symbol, timeframe, since_ms, until_ms=None, limit=
     return rows
 
 
+def intrabar_path(candle, direction):
+    open_price = candle[1]
+    high = candle[2]
+    low = candle[3]
+    close = candle[4]
+    if direction == 'LONG':
+        return [open_price, low, high, close]
+    return [open_price, high, low, close]
+
+
 def run_backtest(days=30, symbols=None):
     exchange = create_exchange()
     symbols = symbols or SYMBOLS
@@ -113,10 +123,17 @@ def run_backtest(days=30, symbols=None):
             candles = symbol_to_candles_5m.get(open_trade['symbol'])
             if candles and candles[-1][0] > int(open_trade['opened_at'].timestamp() * 1000):
                 candle = candles[-1]
-                current_price = candle[4]
                 minutes_elapsed = (timestamp - open_trade['opened_at']).total_seconds() / 60.0
                 rsi_5m = rsi([c[4] for c in candles], 14)
-                exit_price, exit_reason, closed = manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
+                closed = False
+                exit_price = candle[4]
+                exit_reason = 'HOLD'
+                path_points = intrabar_path(candle, open_trade['direction'])
+                for idx, point in enumerate(path_points):
+                    synthetic_candle = [candle[0], candle[1], max(candle[1], point), min(candle[1], point), point, candle[5]]
+                    exit_price, exit_reason, closed = manage_exit(open_trade, point, synthetic_candle, minutes_elapsed, rsi_5m)
+                    if closed:
+                        break
                 if closed:
                     gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
                     fee = open_trade['fee'] + open_trade['slippage']

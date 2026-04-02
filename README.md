@@ -72,3 +72,6 @@ Backtest correction: the scalper backtest now stages entries for the next 5m can
 
 
 Backtest coverage refinement: the historical fetcher now paginates with explicit timeframe steps and the report includes candle counts plus first/last timestamps for 5m and 15m data, so long-window runs (30d vs 100d) can be audited for missing history instead of silently under-sampling.
+
+
+Backtest execution refinement: exit management now approximates intrabar behavior instead of evaluating only the final candle close. Each 5m bar is replayed through a simple directional path (open-low-high-close for longs, open-high-low-close for shorts) so the backtest behaves more like the live scalper, which checks the active candle repeatedly during the trade.

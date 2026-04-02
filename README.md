@@ -100,3 +100,6 @@ Signal replay comparison upgrade: the replay tool can now compare multiple filte
 
 
 Signal replay segmentation upgrade: the report now includes buckets for score, stretch and zscore, showing signal count plus TP-hit / SL-hit / MFE>MAE percentages in each band. This is meant to find where signal quality is actually concentrated instead of relying only on simple global filter toggles.
+
+
+Signal replay variant expansion: added score-band experiments (`score_055_070`, `score_055_080`, `exclude_score_above_070`) to test whether medium-score setups are cleaner than the highest-score cluster.

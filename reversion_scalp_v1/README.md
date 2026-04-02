@@ -52,3 +52,6 @@ Latest 12h-sample refinement: the scalper net-edge floor was relaxed slightly an
 
 
 Latest rollback refinement: restored the pre-overhardening scalper base, then made only two surgical adjustments for the next validation run: SOL max notional was reduced from 20 to 16 to limit its contamination, and dead-trade handling was made slightly more aggressive (fast-fail 4→3 minutes, min progress 0.10→0.12, scratch threshold 0.0006→0.00045).
+
+
+Latest focused refinement: after a profitable 24h run showed SOL carrying the edge and XRP dragging results, the scalper was narrowed to SOL-only for the next validation pass. Profit capture was also loosened slightly to test a bit more upside on winning SOL trades (TP ATR 0.80→0.85, trailing activation 0.22→0.24, trailing distance 0.22→0.24).

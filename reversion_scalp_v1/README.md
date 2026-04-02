@@ -58,3 +58,6 @@ Latest focused refinement: after a profitable 24h run showed SOL carrying the ed
 
 
 Latest paper-sizing refinement: initial paper balance was increased from 20 USD to 100 USD to make the next validation run more representative and reduce distortions from tiny nominal sizing, while preserving the single-position design.
+
+
+Historical-frequency refinement: after backtest coverage was verified, the next iteration modestly relaxed the reversion gate to recover frequency on longer windows without changing the SOL-only research universe. RSI extremes were softened slightly (39/61 -> 41/59), z-score threshold lowered (0.55 -> 0.48), and minimum VWAP stretch eased (0.00035 -> 0.00028).

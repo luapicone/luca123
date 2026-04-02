@@ -21,6 +21,7 @@ from reversion_scalp_v1.exit_manager import manage_exit
 from reversion_scalp_v1.indicators import rsi
 from reversion_scalp_v1.risk import risk_checks
 from reversion_scalp_v1.scanner import scan_all_assets
+from reversion_scalp_v1.signal import detect_reversion_signal
 from reversion_scalp_v1.state import BotState
 
 TRADES_CSV = Path('reversion_scalp_v1_backtest_trades.csv')
@@ -64,6 +65,25 @@ def intrabar_path(candle, direction):
     return [open_price, high, low, close]
 
 
+def synthesize_signal_from_partial_candle(candles_5m, candles_15m):
+    if not candles_5m:
+        return None
+    base = candles_5m[-1]
+    o, h, l, c, v = base[1], base[2], base[3], base[4], base[5]
+    candidates = [
+        [base[0], o, max(o, h), min(o, l), (o + c) / 2, max(v * 0.5, 1.0)],
+        [base[0], o, h, l, c, v],
+    ]
+    best = None
+    for partial in candidates:
+        synthetic_5m = candles_5m[:-1] + [partial]
+        signal = detect_reversion_signal(synthetic_5m, candles_15m)
+        if signal and 'rejected' not in signal:
+            if best is None or signal.get('score', 0) > best.get('score', 0):
+                best = signal
+    return best
+
+
 def run_backtest(days=30, symbols=None):
     exchange = create_exchange()
     symbols = symbols or SYMBOLS
@@ -103,7 +123,16 @@ def run_backtest(days=30, symbols=None):
         if open_trade is None and pending_trade is None:
             ok, _ = risk_checks(state)
             if ok and symbol_to_candles_5m:
-                signal, _diagnostics = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
+                candidates = []
+                diagnostics = {}
+                for symbol, candles5 in symbol_to_candles_5m.items():
+                    signal = synthesize_signal_from_partial_candle(candles5, symbol_to_candles_15m.get(symbol, []))
+                    if signal:
+                        signal['symbol'] = symbol
+                        candidates.append(signal)
+                    else:
+                        diagnostics[symbol] = {'rejected': 'no_partial_or_close_signal'}
+                signal = sorted(candidates, key=lambda x: x['score'], reverse=True)[0] if candidates else None
                 if signal:
                     cooldown_key = f"{signal['symbol']}|{signal['direction']}"
                     cooldown_until = state.symbol_cooldowns.get(cooldown_key)

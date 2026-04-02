@@ -75,3 +75,6 @@ Backtest coverage refinement: the historical fetcher now paginates with explicit
 
 
 Backtest execution refinement: exit management now approximates intrabar behavior instead of evaluating only the final candle close. Each 5m bar is replayed through a simple directional path (open-low-high-close for longs, open-high-low-close for shorts) so the backtest behaves more like the live scalper, which checks the active candle repeatedly during the trade.
+
+
+Backtest live-alignment refinement: signal generation now also tests a synthetic partial 5m candle (mid-candle snapshot plus full close) before queuing an entry. This approximates the real bot polling every ~20s, where setups can appear before the final 5m close instead of only at strict bar close.

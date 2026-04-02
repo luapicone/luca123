@@ -69,3 +69,6 @@ python3.12 -m reversion_scalp_v1.backtest --symbol SOL/USDT:USDT --days 30
 
 
 Backtest correction: the scalper backtest now stages entries for the next 5m candle and does not allow trade management on the same candle that generated the signal. This makes the simulation more aligned with the live runtime and avoids same-bar entry/exit distortion.
+
+
+Backtest coverage refinement: the historical fetcher now paginates with explicit timeframe steps and the report includes candle counts plus first/last timestamps for 5m and 15m data, so long-window runs (30d vs 100d) can be audited for missing history instead of silently under-sampling.

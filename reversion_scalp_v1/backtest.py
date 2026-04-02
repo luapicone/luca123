@@ -30,20 +30,26 @@ def create_exchange():
     return getattr(ccxt, EXCHANGE_ID)({'enableRateLimit': True})
 
 
-def fetch_all_ohlcv(exchange, symbol, timeframe, since_ms, limit=1000):
+TIMEFRAME_MS = {'5m': 5 * 60 * 1000, '15m': 15 * 60 * 1000}
+
+def fetch_all_ohlcv(exchange, symbol, timeframe, since_ms, until_ms=None, limit=1000):
     rows = []
     cursor = since_ms
-    while True:
+    step = TIMEFRAME_MS[timeframe]
+    until_ms = until_ms or int(datetime.now(timezone.utc).timestamp() * 1000)
+    while cursor < until_ms:
         batch = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=cursor, limit=limit)
         if not batch:
             break
-        if rows and batch[0][0] <= rows[-1][0]:
+        batch = [r for r in batch if r[0] >= cursor]
+        if rows:
             batch = [r for r in batch if r[0] > rows[-1][0]]
         if not batch:
-            break
+            cursor += step * limit
+            continue
         rows.extend(batch)
-        cursor = batch[-1][0] + 1
-        if len(batch) < limit:
+        cursor = batch[-1][0] + step
+        if batch[-1][0] >= until_ms - step:
             break
     return rows
 
@@ -53,9 +59,10 @@ def run_backtest(days=30, symbols=None):
     symbols = symbols or SYMBOLS
     since = datetime.now(timezone.utc) - timedelta(days=days)
     since_ms = int(since.timestamp() * 1000)
+    until_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
 
-    data_5m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_ENTRY, since_ms) for symbol in symbols}
-    data_15m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_CONTEXT, since_ms) for symbol in symbols}
+    data_5m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_ENTRY, since_ms, until_ms) for symbol in symbols}
+    data_15m = {symbol: fetch_all_ohlcv(exchange, symbol, TF_CONTEXT, since_ms, until_ms) for symbol in symbols}
 
     state = BotState(balance=INITIAL_BALANCE, daily_start_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
     open_trade = None
@@ -144,10 +151,24 @@ def run_backtest(days=30, symbols=None):
                     open_trade = None
         equity.append((timestamp.isoformat(), state.balance))
 
-    return trades, equity
+    coverage = {}
+    for symbol in symbols:
+        first_5m = datetime.fromtimestamp(data_5m[symbol][0][0] / 1000, tz=timezone.utc).isoformat() if data_5m[symbol] else 'none'
+        last_5m = datetime.fromtimestamp(data_5m[symbol][-1][0] / 1000, tz=timezone.utc).isoformat() if data_5m[symbol] else 'none'
+        first_15m = datetime.fromtimestamp(data_15m[symbol][0][0] / 1000, tz=timezone.utc).isoformat() if data_15m[symbol] else 'none'
+        last_15m = datetime.fromtimestamp(data_15m[symbol][-1][0] / 1000, tz=timezone.utc).isoformat() if data_15m[symbol] else 'none'
+        coverage[symbol] = {
+            'candles_5m': len(data_5m[symbol]),
+            'candles_15m': len(data_15m[symbol]),
+            'first_5m': first_5m,
+            'last_5m': last_5m,
+            'first_15m': first_15m,
+            'last_15m': last_15m,
+        }
+    return trades, equity, coverage
 
 
-def write_outputs(trades, equity):
+def write_outputs(trades, equity, coverage):
     wins = sum(1 for t in trades if t['pnl'] > 0)
     losses = sum(1 for t in trades if t['pnl'] <= 0)
     total_pnl = sum(t['pnl'] for t in trades)
@@ -167,8 +188,11 @@ def write_outputs(trades, equity):
         f'win_rate_pct: {wr:.2f}',
         f'total_pnl: {total_pnl:.6f}',
         '',
-        '===== PNL BY SYMBOL =====',
+        '===== DATA COVERAGE =====',
     ]
+    for symbol, info in coverage.items():
+        lines.append(f"{symbol}: candles_5m={info['candles_5m']} range_5m={info['first_5m']} -> {info['last_5m']} | candles_15m={info['candles_15m']} range_15m={info['first_15m']} -> {info['last_15m']}")
+    lines += ['', '===== PNL BY SYMBOL =====']
     for symbol, pnls in sorted(by_symbol.items(), key=lambda item: sum(item[1]), reverse=True):
         lines.append(f'{symbol}: trades={len(pnls)} pnl={sum(pnls):.6f} avg={sum(pnls)/len(pnls):.6f}')
     lines += ['', '===== EXIT REASONS =====']
@@ -197,8 +221,8 @@ def main():
     parser.add_argument('--days', type=int, default=30)
     parser.add_argument('--symbol', action='append', dest='symbols')
     args = parser.parse_args()
-    trades, equity = run_backtest(days=args.days, symbols=args.symbols)
-    write_outputs(trades, equity)
+    trades, equity, coverage = run_backtest(days=args.days, symbols=args.symbols)
+    write_outputs(trades, equity, coverage)
 
 
 if __name__ == '__main__':

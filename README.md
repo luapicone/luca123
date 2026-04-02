@@ -91,3 +91,6 @@ python3.12 -m reversion_scalp_v1.signal_replay --symbol SOL/USDT:USDT --days 30 
 
 
 Backtest calibration refinement: partial-candle signal synthesis now evaluates multiple intra-candle snapshots instead of just one midpoint and the exit path also uses a denser synthetic sequence. This is intended to better mimic the real bot polling every ~20 seconds and improve 1-day calibration against paper-live behavior.
+
+
+Signal replay upgrade: `reversion_scalp_v1/signal_replay.py` now reports scenario scores to compare signal quality under different interpretations (`strict_tp_first`, `strict_sl_first`, `mfe_gt_mae`, `balanced`). This makes it usable as a strategy-comparison lab even when full execution backtesting is still imperfect.

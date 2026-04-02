@@ -39,6 +39,21 @@ def fetch_all_ohlcv(exchange, symbol, timeframe, since_ms, until_ms=None, limit=
     return rows
 
 
+def classify_signal(row, scenario):
+    tp_first = row['hit_tp'] and not row['hit_sl']
+    sl_first = row['hit_sl'] and not row['hit_tp']
+    both = row['hit_tp'] and row['hit_sl']
+    if scenario == 'strict_tp_first':
+        return tp_first
+    if scenario == 'strict_sl_first':
+        return not sl_first
+    if scenario == 'mfe_gt_mae':
+        return row['mfe'] > row['mae']
+    if scenario == 'balanced':
+        return (row['hit_tp'] and row['mfe'] >= row['mae']) or (row['mfe'] > row['mae'] * 1.1)
+    return False
+
+
 def replay(days=30, symbols=None, lookahead_bars=6):
     exchange = create_exchange()
     symbols = symbols or SYMBOLS
@@ -93,7 +108,7 @@ def replay(days=30, symbols=None, lookahead_bars=6):
     return results
 
 
-def write_outputs(results):
+def write_outputs(results, scenarios):
     total = len(results)
     tp_hits = sum(1 for r in results if r['hit_tp'])
     sl_hits = sum(1 for r in results if r['hit_sl'])
@@ -107,8 +122,12 @@ def write_outputs(results):
         f'avg_mfe: {avg_mfe:.6f}',
         f'avg_mae: {avg_mae:.6f}',
         '',
-        '===== SIGNALS BY SYMBOL =====',
+        '===== SCENARIO SCORES =====',
     ]
+    for scenario in scenarios:
+        hits = sum(1 for row in results if classify_signal(row, scenario))
+        lines.append(f'{scenario}: favorable_pct={(hits / total * 100) if total else 0:.2f}')
+    lines += ['', '===== SIGNALS BY SYMBOL =====']
     by_symbol = {}
     for row in results:
         by_symbol.setdefault(row['symbol'], []).append(row)
@@ -131,9 +150,11 @@ def main():
     parser.add_argument('--days', type=int, default=30)
     parser.add_argument('--symbol', action='append', dest='symbols')
     parser.add_argument('--lookahead-bars', type=int, default=6)
+    parser.add_argument('--scenario', action='append', dest='scenarios')
     args = parser.parse_args()
+    scenarios = args.scenarios or ['strict_tp_first', 'strict_sl_first', 'mfe_gt_mae', 'balanced']
     results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
-    write_outputs(results)
+    write_outputs(results, scenarios)
 
 
 if __name__ == '__main__':

@@ -7,12 +7,16 @@ from reversion_scalp_v1.config import (
     RSI_LONG_MAX,
     RSI_PERIOD,
     RSI_SHORT_MIN,
+    SCORE_FILTER_MAX,
+    SCORE_FILTER_MIN,
     SCORE_MIN_THRESHOLD,
     SL_ATR_MULTIPLIER,
     SL_PCT_MAX,
     TP_ATR_MULTIPLIER,
     TP_PCT_MAX,
     VWAP_STRETCH_MIN,
+    ZSCORE_FILTER_MAX,
+    ZSCORE_FILTER_MIN,
     Z_SCORE_MIN,
 )
 from reversion_scalp_v1.indicators import atr, bollinger_bands, rsi, sma, vwap
@@ -80,6 +84,12 @@ def detect_reversion_signal(candles_5m, candles_15m):
     score = 0.28 * stretch_edge + 0.22 * context_edge + 0.20 * candle_quality + 0.20 * mean_reclaim + 0.10 * min(abs(zscore) / max(Z_SCORE_MIN, 1e-9), 1.5) / 1.5
     if score < SCORE_MIN_THRESHOLD:
         return {'rejected': 'score_below_threshold', 'score': score}
+
+    abs_zscore = abs(zscore)
+    if score < SCORE_FILTER_MIN or score >= SCORE_FILTER_MAX:
+        return {'rejected': 'score_filter_window', 'score': score, 'zscore': zscore}
+    if abs_zscore < ZSCORE_FILTER_MIN or abs_zscore >= ZSCORE_FILTER_MAX:
+        return {'rejected': 'zscore_filter_window', 'score': score, 'zscore': zscore}
 
     return {
         'direction': direction,

@@ -2,7 +2,7 @@ from pathlib import Path
 
 SYMBOLS = ["SOL/USDT:USDT"]
 EXCHANGE_ID = "binanceusdm"
-INITIAL_BALANCE = 20.0
+INITIAL_BALANCE = 100.0
 RISK_PER_TRADE = 0.015
 LEVERAGE = 10
 

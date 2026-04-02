@@ -55,3 +55,6 @@ Latest rollback refinement: restored the pre-overhardening scalper base, then ma
 
 
 Latest focused refinement: after a profitable 24h run showed SOL carrying the edge and XRP dragging results, the scalper was narrowed to SOL-only for the next validation pass. Profit capture was also loosened slightly to test a bit more upside on winning SOL trades (TP ATR 0.80→0.85, trailing activation 0.22→0.24, trailing distance 0.22→0.24).
+
+
+Latest paper-sizing refinement: initial paper balance was increased from 20 USD to 100 USD to make the next validation run more representative and reduce distortions from tiny nominal sizing, while preserving the single-position design.

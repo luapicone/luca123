@@ -121,6 +121,22 @@ def replay(days=30, symbols=None, lookahead_bars=6):
     return results
 
 
+def bucketize(results, key, buckets):
+    lines = [f'===== {key.upper()} BUCKETS =====']
+    for low, high in buckets:
+        subset = [r for r in results if low <= abs(r.get(key) or 0) < high]
+        total = len(subset)
+        if total == 0:
+            lines.append(f'[{low}, {high}): signals=0')
+            continue
+        tp_hits = sum(1 for r in subset if r['hit_tp']) / total * 100
+        sl_hits = sum(1 for r in subset if r['hit_sl']) / total * 100
+        mfe_gt = sum(1 for r in subset if r['mfe'] > r['mae']) / total * 100
+        lines.append(f'[{low}, {high}): signals={total} tp_hit_pct={tp_hits:.2f} sl_hit_pct={sl_hits:.2f} mfe_gt_mae_pct={mfe_gt:.2f}')
+    lines.append('')
+    return lines
+
+
 def write_outputs(results, scenarios, variants):
     total = len(results)
     tp_hits = sum(1 for r in results if r['hit_tp'])
@@ -156,6 +172,10 @@ def write_outputs(results, scenarios, variants):
         lines.append(
             f"{symbol}: signals={len(rows)} tp_hit_pct={sum(1 for r in rows if r['hit_tp'])/len(rows)*100:.2f} sl_hit_pct={sum(1 for r in rows if r['hit_sl'])/len(rows)*100:.2f} avg_mfe={sum(r['mfe'] for r in rows)/len(rows):.6f} avg_mae={sum(r['mae'] for r in rows)/len(rows):.6f}"
         )
+    lines += ['']
+    lines += bucketize(results, 'score', [(0.0, 0.55), (0.55, 0.7), (0.7, 1.0), (1.0, 10.0)])
+    lines += bucketize(results, 'stretch', [(0.0, 0.0005), (0.0005, 0.001), (0.001, 0.002), (0.002, 1.0)])
+    lines += bucketize(results, 'zscore', [(0.0, 0.6), (0.6, 0.8), (0.8, 1.2), (1.2, 10.0)])
     REPORT_PATH.write_text('\n'.join(lines), encoding='utf8')
     with CSV_PATH.open('w', newline='', encoding='utf8') as f:
         writer = csv.DictWriter(f, fieldnames=list(results[0].keys()) if results else ['timestamp'])

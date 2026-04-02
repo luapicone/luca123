@@ -97,3 +97,6 @@ Signal replay upgrade: `reversion_scalp_v1/signal_replay.py` now reports scenari
 
 
 Signal replay comparison upgrade: the replay tool can now compare multiple filter variants (`baseline`, `higher_score`, `deeper_stretch`, `stronger_zscore`) and report how each one changes signal count plus scenario-quality percentages. This is the main research surface for deciding whether a stricter filter is worth carrying into the real bot.
+
+
+Signal replay segmentation upgrade: the report now includes buckets for score, stretch and zscore, showing signal count plus TP-hit / SL-hit / MFE>MAE percentages in each band. This is meant to find where signal quality is actually concentrated instead of relying only on simple global filter toggles.

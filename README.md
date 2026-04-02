@@ -56,3 +56,13 @@ Recent tuning added faster break-even, tighter trailing, shorter max hold and a 
 python3 tick_vampire_v3/make_research_report.py
 cat tick_vampire_v3_research_report.txt
 ```
+
+
+## Reversion scalper backtest
+
+Se agregó `reversion_scalp_v1/backtest.py` para simular la lógica del scalper con velas históricas, una sola posición abierta, fees/slippage y outputs de reporte/CSV/equity curve. Uso sugerido:
+
+```bash
+python3.12 -m reversion_scalp_v1.backtest --days 30
+python3.12 -m reversion_scalp_v1.backtest --symbol SOL/USDT:USDT --days 30
+```

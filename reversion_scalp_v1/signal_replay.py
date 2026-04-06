@@ -80,6 +80,22 @@ def apply_filter_variant(row, variant):
         score = row.get('score') or 0
         z = abs(row.get('zscore') or 0)
         return 0.55 <= score < 0.70 and 0.60 <= z < 0.80
+    if variant == 'live_current':
+        score = row.get('score') or 0
+        z = abs(row.get('zscore') or 0)
+        return 0.55 <= score < 0.80 and 0.60 <= z < 0.80
+    if variant == 'live_current_tighter_score':
+        score = row.get('score') or 0
+        z = abs(row.get('zscore') or 0)
+        return 0.55 <= score < 0.75 and 0.60 <= z < 0.80
+    if variant == 'live_current_wider_score':
+        score = row.get('score') or 0
+        z = abs(row.get('zscore') or 0)
+        return 0.55 <= score < 0.85 and 0.60 <= z < 0.80
+    if variant == 'live_current_no_z_cap':
+        score = row.get('score') or 0
+        z = abs(row.get('zscore') or 0)
+        return 0.55 <= score < 0.80 and z >= 0.60
     return True
 
 
@@ -212,12 +228,12 @@ def main():
     parser.add_argument('--window-check', action='store_true')
     args = parser.parse_args()
     scenarios = args.scenarios or ['strict_tp_first', 'strict_sl_first', 'mfe_gt_mae', 'balanced']
-    variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore', 'score_055_070', 'score_055_080', 'exclude_score_above_070', 'score_055_065', 'score_060_070', 'score_060_075', 'score_055_070_z_060_080']
+    variants = args.variants or ['baseline', 'higher_score', 'deeper_stretch', 'stronger_zscore', 'score_055_070', 'score_055_080', 'exclude_score_above_070', 'score_055_065', 'score_060_070', 'score_060_075', 'score_055_070_z_060_080', 'live_current', 'live_current_tighter_score', 'live_current_wider_score', 'live_current_no_z_cap']
     results = replay(days=args.days, symbols=args.symbols, lookahead_bars=args.lookahead_bars)
     write_outputs(results, scenarios, variants)
     if args.window_check:
         extra_windows = [15, 30, 45, 60]
-        focus_variants = ['score_055_065', 'score_055_070_z_060_080']
+        focus_variants = ['score_055_065', 'score_055_070_z_060_080', 'live_current', 'live_current_tighter_score', 'live_current_wider_score', 'live_current_no_z_cap']
         lines = ['\n===== WINDOW STABILITY CHECK =====']
         for window in extra_windows:
             subset_results = replay(days=window, symbols=args.symbols, lookahead_bars=args.lookahead_bars)

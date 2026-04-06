@@ -109,3 +109,6 @@ Signal replay variant extension: added narrower score-band tests (`score_055_065
 
 
 Focused stability check: `signal_replay.py` now supports `--window-check`, which appends 15d/30d/45d/60d comparisons only for the two strongest candidate filters: `score_055_065` and `score_055_070_z_060_080`.
+
+
+Live-filter research variants: signal replay now includes `live_current` and nearby alternatives (`live_current_tighter_score`, `live_current_wider_score`, `live_current_no_z_cap`) so the next post-run decision can be based on adjacent replay candidates while the paper bot is still running.

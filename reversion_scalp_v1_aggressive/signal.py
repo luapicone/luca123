@@ -7,6 +7,8 @@ from reversion_scalp_v1_aggressive.config import (
     RSI_LONG_MAX,
     RSI_PERIOD,
     RSI_SHORT_MIN,
+    RSI_CONTEXT_LONG_MAX,
+    RSI_CONTEXT_SHORT_MIN,
     SCORE_FILTER_MAX,
     SCORE_FILTER_MIN,
     SCORE_MIN_THRESHOLD,

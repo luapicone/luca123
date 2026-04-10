@@ -59,9 +59,9 @@ def detect_reversion_signal(candles_5m, candles_15m):
     if intrabar_rsi is not None and context_rsi is not None:
         long_trigger = (long_reversal_candle or (intrabar_rsi <= RSI_LONG_MAX - 2 and stretch <= -(VWAP_STRETCH_MIN * 1.35)))
         short_trigger = (short_reversal_candle or (intrabar_rsi >= RSI_SHORT_MIN + 2 and stretch >= (VWAP_STRETCH_MIN * 1.35)))
-        if intrabar_rsi <= RSI_LONG_MAX and context_rsi <= 48 and stretch <= -VWAP_STRETCH_MIN and zscore <= -Z_SCORE_MIN and long_trigger:
+        if intrabar_rsi <= RSI_LONG_MAX and context_rsi <= RSI_CONTEXT_LONG_MAX and stretch <= -VWAP_STRETCH_MIN and zscore <= -Z_SCORE_MIN and long_trigger:
             direction = 'LONG'
-        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= 52 and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_trigger:
+        elif intrabar_rsi >= RSI_SHORT_MIN and context_rsi >= RSI_CONTEXT_SHORT_MIN and stretch >= VWAP_STRETCH_MIN and zscore >= Z_SCORE_MIN and short_trigger:
             direction = 'SHORT'
 
     if direction is None:

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 import ccxt
 
+from reversion_scalp_v1_aggressive.discord_bot import notify_open, notify_close, notify_risk_blocked
 from reversion_scalp_v1_aggressive.config import EXCHANGE_ID, INITIAL_BALANCE, LOG_PATH, SYMBOLS, TF_CONTEXT, TF_ENTRY, SYMBOL_COOLDOWN_MINUTES, SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES
 from reversion_scalp_v1_aggressive.db import init_db, insert_trade
 from reversion_scalp_v1_aggressive.execution import build_trade
@@ -82,6 +83,8 @@ def main():
                         trade['opened_at'] = datetime.now(timezone.utc)
                         open_trade = trade
                         logging.info('OPEN %s %s entry=%s sl=%s tp=%s size=%s score=%.3f stretch=%.6f zscore=%.3f', trade['symbol'], trade['direction'], trade['entry'], trade['sl'], trade['tp'], trade['size'], trade['score'], trade['stretch'], trade['zscore'])
+                        notify_open(trade)
+
             else:
                 logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s diagnostics=%s', cycle, len(symbol_to_candles_5m), diagnostics)
         else:
@@ -106,6 +109,7 @@ def main():
                     state.symbol_cooldowns[cooldown_key] = datetime.now(timezone.utc).timestamp() + (cooldown_minutes * 60)
                     insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['symbol'], open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, exit_reason, state.balance, open_trade.get('score'), open_trade.get('stretch'), open_trade.get('context_rsi'), open_trade.get('zscore'), minutes_elapsed, open_trade.get('mfe'), open_trade.get('mae'), open_trade.get('peak_progress')))
                     logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s mfe=%.6f mae=%.6f peak_progress=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6), open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
+                    notify_close(open_trade, pnl, exit_reason, state.balance)
                     open_trade = None
         logging.info('scan_cycle_end cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
         time.sleep(20)

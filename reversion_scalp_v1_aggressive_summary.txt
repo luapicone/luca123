@@ -1,0 +1,242 @@
+===== REVERSION SCALP V1 SUMMARY =====
+trades: 20
+wins: 16
+losses: 4
+win_rate_pct: 80.0
+total_pnl: 1.565388
+avg_pnl: 0.078269
+avg_hold_minutes: 0.4296
+avg_mfe: 0.2955
+avg_mae: 0.0495
+avg_peak_progress: 1.705778
+
+===== LAST 50 TRADES =====
+(20, '2026-04-15T02:31:32.855865+00:00', 'SOL/USDT:USDT', 'LONG', 83.44, 83.57692857142857, 1.198, 0.06407930857142626, 0.09996112, 'TP', 101.56538777828573, 0.6524201120702703, -0.0033020242094913277, 45.8064516129034, -0.7274022253287843, 0.34327735000000004, 0.18000000000000682, 0.060000000000002274, 1.314553990610397)
+(19, '2026-04-14T16:54:01.243751+00:00', 'SOL/USDT:USDT', 'LONG', 84.91, 85.15814285714285, 1.178, 0.19228830571428004, 0.10002397999999998, 'TP', 101.5013084697143, 0.7288372698121593, -0.00853255917404979, 39.79238754325259, -0.6349989075757634, 0.34333453333333336, 0.480000000000004, 0.09999999999999432, 1.9343696027634387)
+(18, '2026-04-14T15:09:35.141842+00:00', 'SOL/USDT:USDT', 'LONG', 85.37, 85.643184, 1.171, 0.21993019400000063, 0.09996827000000001, 'TP', 101.30902016400002, 0.6374968285899592, -0.014999322910055323, 44.911504424778855, -0.641961693773621, 0.34330201666666665, 0.6099999999999994, 0.20000000000000284, 2.2329272578188997)
+(17, '2026-04-14T13:42:40.978284+00:00', 'SOL/USDT:USDT', 'SHORT', 86.95, 86.73464285714286, 1.15, 0.14766821428571547, 0.0999925, 'TP', 101.08908997000002, 0.7243732298962626, 0.009318223379393045, 62.711864406779846, 0.7125881912510882, 0.3433521333333333, 0.46999999999999886, 0.009999999999990905, 2.1824212271973304)
+(16, '2026-04-14T13:19:40.676087+00:00', 'SOL/USDT:USDT', 'SHORT', 86.27, 86.09707142857143, 1.159, 0.10043728428571365, 0.09998693000000002, 'TP', 100.9414217557143, 0.6796103892934126, 0.004666458444482894, 55.55555555555556, 0.6474550259608579, 0.34326328333333334, 0.3100000000000023, 0.0799999999999983, 1.792647666253633)
+(15, '2026-04-14T11:29:48.049106+00:00', 'SOL/USDT:USDT', 'LONG', 85.64, 85.80714285714286, 1.168, 0.09519533714286452, 0.10002752000000001, 'TP', 100.84098447142858, 0.6567881881453896, -0.0047768570319682725, 42.592592592592204, -0.6345159802877728, 0.3432832, 0.28000000000000114, 0.04000000000000625, 1.6752136752136186)
+(14, '2026-04-14T10:36:34.485327+00:00', 'SOL/USDT:USDT', 'SHORT', 86.42, 86.35054857142856, 1.157, -0.019632637142843384, 0.09998794000000003, 'SL', 100.74578913428572, 0.7380434955146322, 0.0032713113289550696, 62.941176470588466, 0.6038810821438299, 0.6864428666666667, 0.10000000000000853, 0.0799999999999983, 0.8838383838384257)
+(13, '2026-04-14T08:34:37.697610+00:00', 'SOL/USDT:USDT', 'SHORT', 86.24, 86.0915, 1.16, 0.07222159999999829, 0.10003839999999999, 'TP', 100.76542177142856, 0.7411915420893191, 0.0034056419786108534, 62.983425414364795, 0.6777463556799443, 0.34321455, 0.269999999999996, 0.030000000000001137, 1.8181818181818095)
+(12, '2026-04-13T19:32:30.806409+00:00', 'SOL/USDT:USDT', 'SHORT', 83.66, 83.48321428571428, 1.195, 0.11128522857142806, 0.09997370000000003, 'TP', 100.69320017142857, 0.729182321677372, 0.0072553141187400505, 62.37623762376249, 0.6184237871841498, 0.34335831666666666, 0.20999999999999375, 0.04000000000000625, 1.1878787878787553)
+(11, '2026-04-13T18:25:51.376362+00:00', 'SOL/USDT:USDT', 'LONG', 82.67, 82.69665714285715, 1.21, -0.06777555714285248, 0.1000307, 'SL', 100.58191494285714, 0.7248779796491124, -0.006965659774755738, 35.67567567567559, -0.6286349669871161, 1.0346712333333334, 0.06999999999999318, 0.060000000000002274, 0.35012504465877176)
+(10, '2026-04-13T12:46:49.068247+00:00', 'SOL/USDT:USDT', 'SHORT', 82.28, 82.12957142857142, 1.215, 0.08280051428572122, 0.09997020000000001, 'TP', 100.64969049999999, 0.6856116355699776, 0.0037966938774258445, 60.92715231788091, 0.6149733125276706, 0.34813421666666666, 0.1599999999999966, 0.010000000000005116, 1.063627730294334)
+(9, '2026-04-13T11:47:43.610095+00:00', 'SOL/USDT:USDT', 'SHORT', 81.99, 81.9286392857143, 1.22, -0.025167728571448708, 0.1000278, 'SL', 100.56688998571427, 0.6026440431655841, 0.0022909551850739487, 52.212389380530894, 0.6263613263995679, 0.6866122166666667, 0.0899999999999892, 0.020000000000010232, 0.8484848484847713)
+(8, '2026-04-13T06:19:44.521061+00:00', 'SOL/USDT:USDT', 'SHORT', 82.3, 82.15471428571428, 1.215, 0.07652764285714957, 0.0999945, 'TP', 100.59205771428572, 0.6996091581969597, 0.005515947233307104, 62.20930232558135, 0.6142091948320669, 0.3431762666666666, 0.3299999999999983, 0.04999999999999716, 2.271386430678368)
+(7, '2026-04-13T04:41:50.830869+00:00', 'SOL/USDT:USDT', 'SHORT', 82.16, 82.13603571428571, 1.217, -0.07082418428571463, 0.09998872, 'SL', 100.51553007142857, 0.6219398346755821, 0.0030370439695758676, 55.24861878453068, 0.606276201929361, 0.6865636166666668, 0.04999999999999716, 0.010000000000005116, 0.5185185185184694)
+(6, '2026-04-12T22:29:47.406755+00:00', 'SOL/USDT:USDT', 'LONG', 81.45, 81.71064, 1.228, 0.22004531999999394, 0.1000206, 'TP', 100.58635425571428, 0.6859041082085839, -0.009339962661866118, 39.145907473309684, -0.6228654509879311, 0.34346155, 0.37999999999999545, 0.0, 1.4579496623695618)
+(5, '2026-04-12T22:04:42.246278+00:00', 'SOL/USDT:USDT', 'LONG', 81.87, 82.0815, 1.221, 0.15827823000000113, 0.09996327, 'TP', 100.36630893571429, 0.6287252025307206, -0.007495828283136541, 46.69421487603284, -0.6864500849136209, 0.34361828333333333, 0.9099999999999966, 0.04000000000000625, 4.302600472813205)
+(4, '2026-04-12T17:52:10.480233+00:00', 'SOL/USDT:USDT', 'SHORT', 82.11, 81.99814285714285, 1.218, 0.036232020000005166, 0.10000998, 'TP', 100.20803070571428, 0.6340736281764301, 0.003509333019589991, 53.94736842105278, 0.6422157853022603, 0.34342585, 0.2600000000000051, 0.07000000000000739, 2.3243933588760752)
+(3, '2026-04-12T14:31:51.209646+00:00', 'SOL/USDT:USDT', 'LONG', 81.75, 81.89335714285714, 1.223, 0.07534553571428365, 0.09998025000000002, 'TP', 100.17179868571428, 0.6992130499208519, -0.002447040294777442, 35.21126760563317, -0.6868869815989997, 0.3433382833333333, 0.1599999999999966, 0.010000000000005116, 1.116093672147473)
+(2, '2026-04-12T12:53:16.151676+00:00', 'SOL/USDT:USDT', 'LONG', 81.89, 82.01021428571428, 1.221, 0.04679395285713975, 0.09998769000000002, 'TP', 100.09645315, 0.732210552157725, -0.004160392750372391, 42.514970059880184, -0.7419149632696413, 0.3433458833333333, 0.4299999999999926, 0.07000000000000739, 3.576945929887121)
+(1, '2026-04-12T01:18:26.235870+00:00', 'SOL/USDT:USDT', 'LONG', 84.63, 84.75664285714285, 1.182, 0.04965919714285441, 0.10003266, 'TP', 100.04965919714286, 0.7369683619065833, -0.0023009216082903318, 34.9056603773584, -0.7290069103238929, 0.34324326666666666, 0.1600000000000108, 0.009999999999990905, 1.2633953750706102)
+
+===== PNL BY SYMBOL =====
+('SOL/USDT:USDT', 20, 1.565388, 0.078269, 80.0)
+
+===== EXIT REASONS =====
+('TP', 16, 1.748788)
+('SL', 4, -0.1834)
+
+===== LAST 200 LOG LINES =====
+2026-04-15 05:24:39,727 INFO scan_cycle_start cycle=15501 balance=101.565388 open_trade=False
+2026-04-15 05:24:39,727 INFO fetch_start cycle=15501 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:24:40,316 INFO fetch_done cycle=15501 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:24:40,316 INFO scan_cycle_no_signal cycle=15501 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 48.0392156862742, 'context_rsi': 33.128834355828104, 'stretch': 0.0017925657702416783, 'zscore': 0.2772120911341896}}
+2026-04-15 05:24:40,317 INFO scan_cycle_end cycle=15501 balance=101.565388 open_trade=False
+2026-04-15 05:25:00,318 INFO scan_cycle_start cycle=15502 balance=101.565388 open_trade=False
+2026-04-15 05:25:00,318 INFO fetch_start cycle=15502 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:25:00,959 INFO fetch_done cycle=15502 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:25:00,959 INFO scan_cycle_no_signal cycle=15502 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 49.03846153846173, 'context_rsi': 33.128834355828104, 'stretch': 0.002028943921992686, 'zscore': 0.3184561975932728}}
+2026-04-15 05:25:00,960 INFO scan_cycle_end cycle=15502 balance=101.565388 open_trade=False
+2026-04-15 05:25:20,961 INFO scan_cycle_start cycle=15503 balance=101.565388 open_trade=False
+2026-04-15 05:25:20,961 INFO fetch_start cycle=15503 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:25:21,548 INFO fetch_done cycle=15503 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:25:21,549 INFO scan_cycle_no_signal cycle=15503 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 68.91891891891876, 'context_rsi': 33.53658536585377, 'stretch': 0.0019744538076275023, 'zscore': 0.3114960784423749}}
+2026-04-15 05:25:21,549 INFO scan_cycle_end cycle=15503 balance=101.565388 open_trade=False
+2026-04-15 05:25:41,549 INFO scan_cycle_start cycle=15504 balance=101.565388 open_trade=False
+2026-04-15 05:25:41,549 INFO fetch_start cycle=15504 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:25:42,133 INFO fetch_done cycle=15504 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:25:42,134 INFO scan_cycle_no_signal cycle=15504 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.128834355828104, 'stretch': 0.00209218042415052, 'zscore': 0.3323685195446931}}
+2026-04-15 05:25:42,134 INFO scan_cycle_end cycle=15504 balance=101.565388 open_trade=False
+2026-04-15 05:26:02,134 INFO scan_cycle_start cycle=15505 balance=101.565388 open_trade=False
+2026-04-15 05:26:02,134 INFO fetch_start cycle=15505 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:26:02,726 INFO fetch_done cycle=15505 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:26:02,726 INFO scan_cycle_no_signal cycle=15505 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.93939393939368, 'stretch': 0.002085756525590381, 'zscore': 0.3323685195446931}}
+2026-04-15 05:26:02,727 INFO scan_cycle_end cycle=15505 balance=101.565388 open_trade=False
+2026-04-15 05:26:22,728 INFO scan_cycle_start cycle=15506 balance=101.565388 open_trade=False
+2026-04-15 05:26:22,728 INFO fetch_start cycle=15506 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:26:23,320 INFO fetch_done cycle=15506 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:26:23,320 INFO scan_cycle_no_signal cycle=15506 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.53658536585377, 'stretch': 0.002082341468613231, 'zscore': 0.3323685195446931}}
+2026-04-15 05:26:23,321 INFO scan_cycle_end cycle=15506 balance=101.565388 open_trade=False
+2026-04-15 05:26:43,322 INFO scan_cycle_start cycle=15507 balance=101.565388 open_trade=False
+2026-04-15 05:26:43,322 INFO fetch_start cycle=15507 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:26:43,917 INFO fetch_done cycle=15507 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:26:43,917 INFO scan_cycle_no_signal cycle=15507 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.93939393939368, 'stretch': 0.0020780533763873825, 'zscore': 0.3323685195446931}}
+2026-04-15 05:26:43,917 INFO scan_cycle_end cycle=15507 balance=101.565388 open_trade=False
+2026-04-15 05:27:03,919 INFO scan_cycle_start cycle=15508 balance=101.565388 open_trade=False
+2026-04-15 05:27:03,919 INFO fetch_start cycle=15508 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:27:04,515 INFO fetch_done cycle=15508 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:27:04,516 INFO scan_cycle_no_signal cycle=15508 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.27027027027022, 'context_rsi': 34.337349397590316, 'stretch': 0.002197372292424767, 'zscore': 0.35284531754816756}}
+2026-04-15 05:27:04,516 INFO scan_cycle_end cycle=15508 balance=101.565388 open_trade=False
+2026-04-15 05:27:24,516 INFO scan_cycle_start cycle=15509 balance=101.565388 open_trade=False
+2026-04-15 05:27:24,516 INFO fetch_start cycle=15509 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:27:25,103 INFO fetch_done cycle=15509 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:27:25,104 INFO scan_cycle_no_signal cycle=15509 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.53658536585377, 'stretch': 0.0020741724416155796, 'zscore': 0.3323685195446931}}
+2026-04-15 05:27:25,104 INFO scan_cycle_end cycle=15509 balance=101.565388 open_trade=False
+2026-04-15 05:27:45,105 INFO scan_cycle_start cycle=15510 balance=101.565388 open_trade=False
+2026-04-15 05:27:45,105 INFO fetch_start cycle=15510 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:27:45,697 INFO fetch_done cycle=15510 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:27:45,697 INFO scan_cycle_no_signal cycle=15510 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 67.10526315789497, 'context_rsi': 32.716049382715724, 'stretch': 0.001709610151663139, 'zscore': 0.268628478650307}}
+2026-04-15 05:27:45,698 INFO scan_cycle_end cycle=15510 balance=101.565388 open_trade=False
+2026-04-15 05:28:05,699 INFO scan_cycle_start cycle=15511 balance=101.565388 open_trade=False
+2026-04-15 05:28:05,699 INFO fetch_start cycle=15511 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:28:06,284 INFO fetch_done cycle=15511 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:28:06,284 INFO scan_cycle_no_signal cycle=15511 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 32.716049382715724, 'stretch': 0.0020647680115743012, 'zscore': 0.3323685195446931}}
+2026-04-15 05:28:06,285 INFO scan_cycle_end cycle=15511 balance=101.565388 open_trade=False
+2026-04-15 05:28:26,286 INFO scan_cycle_start cycle=15512 balance=101.565388 open_trade=False
+2026-04-15 05:28:26,286 INFO fetch_start cycle=15512 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:28:26,870 INFO fetch_done cycle=15512 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:28:26,871 INFO scan_cycle_no_signal cycle=15512 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 68.91891891891876, 'context_rsi': 32.716049382715724, 'stretch': 0.0019410459780522873, 'zscore': 0.3114960784423749}}
+2026-04-15 05:28:26,871 INFO scan_cycle_end cycle=15512 balance=101.565388 open_trade=False
+2026-04-15 05:28:46,872 INFO scan_cycle_start cycle=15513 balance=101.565388 open_trade=False
+2026-04-15 05:28:46,872 INFO fetch_start cycle=15513 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:28:47,459 INFO fetch_done cycle=15513 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:28:47,460 INFO scan_cycle_no_signal cycle=15513 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.86301369863045, 'context_rsi': 33.53658536585377, 'stretch': 0.002054996651149316, 'zscore': 0.3323685195446931}}
+2026-04-15 05:28:47,460 INFO scan_cycle_end cycle=15513 balance=101.565388 open_trade=False
+2026-04-15 05:29:07,460 INFO scan_cycle_start cycle=15514 balance=101.565388 open_trade=False
+2026-04-15 05:29:07,460 INFO fetch_start cycle=15514 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:29:08,050 INFO fetch_done cycle=15514 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:29:08,050 INFO scan_cycle_no_signal cycle=15514 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.66666666666683, 'context_rsi': 34.337349397590316, 'stretch': 0.0022908266294965835, 'zscore': 0.3729129612794592}}
+2026-04-15 05:29:08,051 INFO scan_cycle_end cycle=15514 balance=101.565388 open_trade=False
+2026-04-15 05:29:28,052 INFO scan_cycle_start cycle=15515 balance=101.565388 open_trade=False
+2026-04-15 05:29:28,052 INFO fetch_start cycle=15515 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:29:28,646 INFO fetch_done cycle=15515 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:29:28,647 INFO scan_cycle_no_signal cycle=15515 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.66666666666683, 'context_rsi': 34.337349397590316, 'stretch': 0.0022739438787542816, 'zscore': 0.3729129612794592}}
+2026-04-15 05:29:28,647 INFO scan_cycle_end cycle=15515 balance=101.565388 open_trade=False
+2026-04-15 05:29:48,647 INFO scan_cycle_start cycle=15516 balance=101.565388 open_trade=False
+2026-04-15 05:29:48,647 INFO fetch_start cycle=15516 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:29:49,243 INFO fetch_done cycle=15516 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:29:49,243 INFO scan_cycle_no_signal cycle=15516 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 71.79487179487198, 'context_rsi': 35.502958579881664, 'stretch': 0.0026276239617647763, 'zscore': 0.4305555555555556}}
+2026-04-15 05:29:49,244 INFO scan_cycle_end cycle=15516 balance=101.565388 open_trade=False
+2026-04-15 05:30:09,245 INFO scan_cycle_start cycle=15517 balance=101.565388 open_trade=False
+2026-04-15 05:30:09,245 INFO fetch_start cycle=15517 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:30:10,117 INFO fetch_done cycle=15517 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:30:10,118 INFO scan_cycle_no_signal cycle=15517 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 75.0, 'context_rsi': 37.888198757763746, 'stretch': 0.0027293629325327953, 'zscore': 0.4131980808074385}}
+2026-04-15 05:30:10,118 INFO scan_cycle_end cycle=15517 balance=101.565388 open_trade=False
+2026-04-15 05:30:30,119 INFO scan_cycle_start cycle=15518 balance=101.565388 open_trade=False
+2026-04-15 05:30:30,119 INFO fetch_start cycle=15518 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:30:30,715 INFO fetch_done cycle=15518 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:30:30,715 INFO scan_cycle_no_signal cycle=15518 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.37037037037057, 'context_rsi': 36.74698795180705, 'stretch': 0.002114357497999928, 'zscore': 0.32038629452687667}}
+2026-04-15 05:30:30,716 INFO scan_cycle_end cycle=15518 balance=101.565388 open_trade=False
+2026-04-15 05:30:50,717 INFO scan_cycle_start cycle=15519 balance=101.565388 open_trade=False
+2026-04-15 05:30:50,717 INFO fetch_start cycle=15519 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:30:51,303 INFO fetch_done cycle=15519 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:30:51,303 INFO scan_cycle_no_signal cycle=15519 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 71.25000000000067, 'context_rsi': 36.74698795180705, 'stretch': 0.0022330331363059138, 'zscore': 0.33966134362920836}}
+2026-04-15 05:30:51,304 INFO scan_cycle_end cycle=15519 balance=101.565388 open_trade=False
+2026-04-15 05:31:11,305 INFO scan_cycle_start cycle=15520 balance=101.565388 open_trade=False
+2026-04-15 05:31:11,305 INFO fetch_start cycle=15520 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:31:11,891 INFO fetch_done cycle=15520 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:31:11,891 INFO scan_cycle_no_signal cycle=15520 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 71.25000000000067, 'context_rsi': 37.19512195121957, 'stretch': 0.0022292363856411582, 'zscore': 0.33966134362920836}}
+2026-04-15 05:31:11,892 INFO scan_cycle_end cycle=15520 balance=101.565388 open_trade=False
+2026-04-15 05:31:31,893 INFO scan_cycle_start cycle=15521 balance=101.565388 open_trade=False
+2026-04-15 05:31:31,893 INFO fetch_start cycle=15521 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:31:32,486 INFO fetch_done cycle=15521 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:31:32,486 INFO scan_cycle_no_signal cycle=15521 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.51219512195217, 'context_rsi': 36.52694610778445, 'stretch': 0.001985887974053436, 'zscore': 0.30077639074522}}
+2026-04-15 05:31:32,487 INFO scan_cycle_end cycle=15521 balance=101.565388 open_trade=False
+2026-04-15 05:31:52,487 INFO scan_cycle_start cycle=15522 balance=101.565388 open_trade=False
+2026-04-15 05:31:52,487 INFO fetch_start cycle=15522 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:31:53,082 INFO fetch_done cycle=15522 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:31:53,082 INFO scan_cycle_no_signal cycle=15522 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.51219512195217, 'context_rsi': 36.52694610778445, 'stretch': 0.001985625084347198, 'zscore': 0.30077639074522}}
+2026-04-15 05:31:53,082 INFO scan_cycle_end cycle=15522 balance=101.565388 open_trade=False
+2026-04-15 05:32:13,083 INFO scan_cycle_start cycle=15523 balance=101.565388 open_trade=False
+2026-04-15 05:32:13,083 INFO fetch_start cycle=15523 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:32:13,675 INFO fetch_done cycle=15523 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:32:13,675 INFO scan_cycle_no_signal cycle=15523 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 69.51219512195217, 'context_rsi': 36.52694610778445, 'stretch': 0.001980748253475104, 'zscore': 0.30077639074522}}
+2026-04-15 05:32:13,675 INFO scan_cycle_end cycle=15523 balance=101.565388 open_trade=False
+2026-04-15 05:32:33,676 INFO scan_cycle_start cycle=15524 balance=101.565388 open_trade=False
+2026-04-15 05:32:33,676 INFO fetch_start cycle=15524 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:32:34,269 INFO fetch_done cycle=15524 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:32:34,269 INFO scan_cycle_no_signal cycle=15524 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 67.05882352941254, 'context_rsi': 36.0946745562128, 'stretch': 0.0016167128395140594, 'zscore': 0.24007919019747592}}
+2026-04-15 05:32:34,270 INFO scan_cycle_end cycle=15524 balance=101.565388 open_trade=False
+2026-04-15 05:32:54,270 INFO scan_cycle_start cycle=15525 balance=101.565388 open_trade=False
+2026-04-15 05:32:54,270 INFO fetch_start cycle=15525 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:32:54,864 INFO fetch_done cycle=15525 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:32:54,864 INFO scan_cycle_no_signal cycle=15525 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 67.05882352941254, 'context_rsi': 35.882352941176435, 'stretch': 0.0016067182281027802, 'zscore': 0.24007919019747592}}
+2026-04-15 05:32:54,864 INFO scan_cycle_end cycle=15525 balance=101.565388 open_trade=False
+2026-04-15 05:33:14,866 INFO scan_cycle_start cycle=15526 balance=101.565388 open_trade=False
+2026-04-15 05:33:14,866 INFO fetch_start cycle=15526 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:33:15,460 INFO fetch_done cycle=15526 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:33:15,461 INFO scan_cycle_no_signal cycle=15526 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 67.85714285714292, 'context_rsi': 36.0946745562128, 'stretch': 0.0017236959417980086, 'zscore': 0.26060715299237674}}
+2026-04-15 05:33:15,461 INFO scan_cycle_end cycle=15526 balance=101.565388 open_trade=False
+2026-04-15 05:33:35,461 INFO scan_cycle_start cycle=15527 balance=101.565388 open_trade=False
+2026-04-15 05:33:35,461 INFO fetch_start cycle=15527 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:33:36,052 INFO fetch_done cycle=15527 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:33:36,053 INFO scan_cycle_no_signal cycle=15527 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 68.67469879518121, 'context_rsi': 36.30952380952371, 'stretch': 0.001835928352250289, 'zscore': 0.28084503382990283}}
+2026-04-15 05:33:36,054 INFO scan_cycle_end cycle=15527 balance=101.565388 open_trade=False
+2026-04-15 05:33:56,056 INFO scan_cycle_start cycle=15528 balance=101.565388 open_trade=False
+2026-04-15 05:33:56,056 INFO fetch_start cycle=15528 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:33:56,648 INFO fetch_done cycle=15528 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:33:56,648 INFO scan_cycle_no_signal cycle=15528 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 75.0, 'context_rsi': 36.969696969696905, 'stretch': 0.0026662970026377947, 'zscore': 0.4131980808074385}}
+2026-04-15 05:33:56,648 INFO scan_cycle_end cycle=15528 balance=101.565388 open_trade=False
+2026-04-15 05:34:16,649 INFO scan_cycle_start cycle=15529 balance=101.565388 open_trade=False
+2026-04-15 05:34:16,649 INFO fetch_start cycle=15529 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:34:17,236 INFO fetch_done cycle=15529 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:34:17,236 INFO scan_cycle_no_signal cycle=15529 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 75.0, 'context_rsi': 38.27160493827157, 'stretch': 0.002650597519911857, 'zscore': 0.4131980808074385}}
+2026-04-15 05:34:17,237 INFO scan_cycle_end cycle=15529 balance=101.565388 open_trade=False
+2026-04-15 05:34:37,238 INFO scan_cycle_start cycle=15530 balance=101.565388 open_trade=False
+2026-04-15 05:34:37,238 INFO fetch_start cycle=15530 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:34:37,832 INFO fetch_done cycle=15530 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:34:37,832 INFO scan_cycle_no_signal cycle=15530 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 77.64705882352953, 'context_rsi': 40.82840236686417, 'stretch': 0.003633025607852611, 'zscore': 0.5563069108820828}}
+2026-04-15 05:34:37,833 INFO scan_cycle_end cycle=15530 balance=101.565388 open_trade=False
+2026-04-15 05:34:57,834 INFO scan_cycle_start cycle=15531 balance=101.565388 open_trade=False
+2026-04-15 05:34:57,834 INFO fetch_start cycle=15531 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:34:58,423 INFO fetch_done cycle=15531 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:34:58,423 INFO scan_cycle_no_signal cycle=15531 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 77.9069767441863, 'context_rsi': 41.86046511627938, 'stretch': 0.0037104724685199358, 'zscore': 0.5702750708719163}}
+2026-04-15 05:34:58,424 INFO scan_cycle_end cycle=15531 balance=101.565388 open_trade=False
+2026-04-15 05:35:18,424 INFO scan_cycle_start cycle=15532 balance=101.565388 open_trade=False
+2026-04-15 05:35:18,424 INFO fetch_start cycle=15532 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:35:19,010 INFO fetch_done cycle=15532 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:35:19,010 INFO scan_cycle_no_signal cycle=15532 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 77.38095238095275, 'context_rsi': 43.502824858757286, 'stretch': 0.004334775741391553, 'zscore': 0.5583764338409966}}
+2026-04-15 05:35:19,011 INFO scan_cycle_end cycle=15532 balance=101.565388 open_trade=False
+2026-04-15 05:35:39,012 INFO scan_cycle_start cycle=15533 balance=101.565388 open_trade=False
+2026-04-15 05:35:39,012 INFO fetch_start cycle=15533 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:35:39,594 INFO fetch_done cycle=15533 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:35:39,594 INFO scan_cycle_no_signal cycle=15533 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 73.49397590361454, 'context_rsi': 41.520467836257446, 'stretch': 0.0034157038558678145, 'zscore': 0.4687128333427854}}
+2026-04-15 05:35:39,595 INFO scan_cycle_end cycle=15533 balance=101.565388 open_trade=False
+2026-04-15 05:35:59,595 INFO scan_cycle_start cycle=15534 balance=101.565388 open_trade=False
+2026-04-15 05:35:59,595 INFO fetch_start cycle=15534 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:36:00,187 INFO fetch_done cycle=15534 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:36:00,188 INFO scan_cycle_no_signal cycle=15534 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 74.39024390243958, 'context_rsi': 41.520467836257446, 'stretch': 0.003527336451732947, 'zscore': 0.4823472123119403}}
+2026-04-15 05:36:00,188 INFO scan_cycle_end cycle=15534 balance=101.565388 open_trade=False
+2026-04-15 05:36:20,188 INFO scan_cycle_start cycle=15535 balance=101.565388 open_trade=False
+2026-04-15 05:36:20,188 INFO fetch_start cycle=15535 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:36:20,779 INFO fetch_done cycle=15535 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:36:20,779 INFO scan_cycle_no_signal cycle=15535 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.93023255813952, 'context_rsi': 40.11976047904181, 'stretch': 0.0030468045110933644, 'zscore': 0.4261612267825831}}
+2026-04-15 05:36:20,780 INFO scan_cycle_end cycle=15535 balance=101.565388 open_trade=False
+2026-04-15 05:36:40,781 INFO scan_cycle_start cycle=15536 balance=101.565388 open_trade=False
+2026-04-15 05:36:40,781 INFO fetch_start cycle=15536 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:36:41,369 INFO fetch_done cycle=15536 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:36:41,370 INFO scan_cycle_no_signal cycle=15536 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 72.61904761904849, 'context_rsi': 40.82840236686417, 'stretch': 0.0032768396862424844, 'zscore': 0.45480292007817763}}
+2026-04-15 05:36:41,370 INFO scan_cycle_end cycle=15536 balance=101.565388 open_trade=False
+2026-04-15 05:37:01,370 INFO scan_cycle_start cycle=15537 balance=101.565388 open_trade=False
+2026-04-15 05:37:01,370 INFO fetch_start cycle=15537 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:37:01,956 INFO fetch_done cycle=15537 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:37:01,957 INFO scan_cycle_no_signal cycle=15537 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 71.76470588235335, 'context_rsi': 40.82840236686417, 'stretch': 0.003155898677022972, 'zscore': 0.4406185076973127}}
+2026-04-15 05:37:01,957 INFO scan_cycle_end cycle=15537 balance=101.565388 open_trade=False
+2026-04-15 05:37:21,958 INFO scan_cycle_start cycle=15538 balance=101.565388 open_trade=False
+2026-04-15 05:37:21,958 INFO fetch_start cycle=15538 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:37:22,552 INFO fetch_done cycle=15538 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:37:22,552 INFO scan_cycle_no_signal cycle=15538 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 72.61904761904849, 'context_rsi': 41.86046511627938, 'stretch': 0.0032617097897990207, 'zscore': 0.45480292007817763}}
+2026-04-15 05:37:22,552 INFO scan_cycle_end cycle=15538 balance=101.565388 open_trade=False
+2026-04-15 05:37:42,554 INFO scan_cycle_start cycle=15539 balance=101.565388 open_trade=False
+2026-04-15 05:37:42,554 INFO fetch_start cycle=15539 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:37:43,140 INFO fetch_done cycle=15539 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:37:43,140 INFO scan_cycle_no_signal cycle=15539 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 70.93023255813952, 'context_rsi': 40.47619047619056, 'stretch': 0.003014733225944406, 'zscore': 0.4261612267825831}}
+2026-04-15 05:37:43,140 INFO scan_cycle_end cycle=15539 balance=101.565388 open_trade=False
+2026-04-15 05:38:03,141 INFO scan_cycle_start cycle=15540 balance=101.565388 open_trade=False
+2026-04-15 05:38:03,141 INFO fetch_start cycle=15540 symbol=SOL/USDT:USDT tf=5m/15m
+2026-04-15 05:38:03,732 INFO fetch_done cycle=15540 symbol=SOL/USDT:USDT candles_5m=120 candles_15m=120
+2026-04-15 05:38:03,732 INFO scan_cycle_no_signal cycle=15540 symbols_ready=1 diagnostics={'SOL/USDT:USDT': {'rejected': 'no_reversion_setup', 'rsi_5m': 71.76470588235335, 'context_rsi': 40.82840236686417, 'stretch': 0.0031251927815146895, 'zscore': 0.4406185076973127}}
+2026-04-15 05:38:03,732 INFO scan_cycle_end cycle=15540 balance=101.565388 open_trade=False

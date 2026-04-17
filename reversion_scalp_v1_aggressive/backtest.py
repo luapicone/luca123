@@ -99,7 +99,7 @@ def build_snapshot(data_5m, data_15m, symbols, scan_ts):
     for symbol in symbols:
         candles15 = get_window(data_15m[symbol], scan_ts, size=120)
         candles5 = get_window(data_5m[symbol], scan_ts, size=120)
-        if not candles5 or not candles15:
+        if len(candles5) < 120 or len(candles15) < 20:
             continue
         symbol_to_candles_5m[symbol] = partialize_current_candle(candles5, scan_ts)
         symbol_to_candles_15m[symbol] = candles15
@@ -132,7 +132,7 @@ def run_backtest(days=30, symbols=None):
     equity = []
     debug_rows = []
 
-    required_warmup_ms = max(120 * TIMEFRAME_MS[TF_ENTRY], 120 * TIMEFRAME_MS[TF_CONTEXT])
+    required_warmup_ms = max(120 * TIMEFRAME_MS[TF_ENTRY], 20 * TIMEFRAME_MS[TF_CONTEXT])
     scan_ts = first_ts + required_warmup_ms
     while scan_ts <= last_ts:
         timestamp = datetime.fromtimestamp(scan_ts / 1000, tz=timezone.utc)

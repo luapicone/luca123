@@ -1,4 +1,4 @@
-from reversion_scalp_v1_aggressive.config import BE_TRIGGER_PCT, MAX_HOLD_MINUTES, TRAILING_ACTIVATION_PCT, TRAILING_DISTANCE_ATR, FAST_FAIL_MINUTES, MIN_PROGRESS_FOR_HOLD, SCRATCH_EXIT_PCT
+from reversion_scalp_v1_aggressive.config import BE_TRIGGER_PCT, SECOND_BE_TRIGGER_PCT, SECOND_BE_LOCK_ATR, MAX_HOLD_MINUTES, TRAILING_ACTIVATION_PCT, TRAILING_DISTANCE_ATR, GIVEBACK_PROGRESS_PCT, GIVEBACK_RETRACE_PCT, FAST_FAIL_MINUTES, MIN_PROGRESS_FOR_HOLD, SCRATCH_EXIT_PCT
 
 
 def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
@@ -17,6 +17,8 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         if not trade['moved_to_be'] and progress >= BE_TRIGGER_PCT:
             trade['sl'] = max(trade['sl'], trade['entry'] + (trade['atr'] * 0.12))
             trade['moved_to_be'] = True
+        if progress >= SECOND_BE_TRIGGER_PCT:
+            trade['sl'] = max(trade['sl'], trade['entry'] + (trade['atr'] * SECOND_BE_LOCK_ATR))
         if progress >= TRAILING_ACTIVATION_PCT:
             trade['trailing_active'] = True
             trail = trade['max_price'] - (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
@@ -24,7 +26,7 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         retrace = (trade['max_price'] - current_price) / max(trade['max_price'] - trade['entry'], 1e-9) if trade['max_price'] > trade['entry'] else 0.0
         gross_buffer = trade['fee'] * 1.35
         net_room = (current_price - trade['entry']) * trade['size'] if trade['direction'] == 'LONG' else (trade['entry'] - current_price) * trade['size']
-        if progress >= 0.58 and retrace >= 0.34 and net_room > gross_buffer:
+        if progress >= GIVEBACK_PROGRESS_PCT and retrace >= GIVEBACK_RETRACE_PCT and net_room > gross_buffer:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price <= trade['entry'] * (1 + SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True
@@ -43,6 +45,8 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         if not trade['moved_to_be'] and progress >= BE_TRIGGER_PCT:
             trade['sl'] = min(trade['sl'], trade['entry'] - (trade['atr'] * 0.12))
             trade['moved_to_be'] = True
+        if progress >= SECOND_BE_TRIGGER_PCT:
+            trade['sl'] = min(trade['sl'], trade['entry'] - (trade['atr'] * SECOND_BE_LOCK_ATR))
         if progress >= TRAILING_ACTIVATION_PCT:
             trade['trailing_active'] = True
             trail = trade['min_price'] + (trade['atr'] * (TRAILING_DISTANCE_ATR * 0.9))
@@ -50,7 +54,7 @@ def manage_exit(trade, current_price, current_candle, minutes_elapsed, rsi_5m):
         retrace = (current_price - trade['min_price']) / max(trade['entry'] - trade['min_price'], 1e-9) if trade['min_price'] < trade['entry'] else 0.0
         gross_buffer = trade['fee'] * 1.35
         net_room = (trade['entry'] - current_price) * trade['size']
-        if progress >= 0.58 and retrace >= 0.34 and net_room > gross_buffer:
+        if progress >= GIVEBACK_PROGRESS_PCT and retrace >= GIVEBACK_RETRACE_PCT and net_room > gross_buffer:
             return current_price, 'GIVEBACK_EXIT', True
         if minutes_elapsed >= FAST_FAIL_MINUTES and progress < MIN_PROGRESS_FOR_HOLD and current_price >= trade['entry'] * (1 - SCRATCH_EXIT_PCT):
             return current_price, 'NO_EXPANSION', True

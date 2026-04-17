@@ -27,6 +27,22 @@ PYTHONPATH=. python3 -m reversion_scalp_v1.main --dry-run
 python3 reversion_scalp_v1/make_summary_report.py && cat reversion_scalp_v1_summary.txt
 ```
 
+## Live-safe prep
+Create a local `.env` (never commit it) with:
+```env
+BINANCE_API_KEY=...
+BINANCE_API_SECRET=...
+LIVE_TRADING=false
+MAX_LIVE_CONCURRENT_TRADES=1
+MAX_LIVE_SYMBOL_NOTIONAL=10
+REQUIRE_MANUAL_POST_ONLY_REVIEW=true
+```
+
+To test credential reading and futures balance access without enabling live trading logic:
+```bash
+python3 -m reversion_scalp_v1_aggressive.test_live_connection
+```
+
 
 The current tuning was relaxed from extreme-reversion mode toward moderate reversion: smaller VWAP/Bollinger dislocations and softer RSI extremes can now qualify, while the score and reversal-candle confirmation still try to keep quality acceptable.
 

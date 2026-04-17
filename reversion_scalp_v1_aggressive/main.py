@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import ccxt
 
 from reversion_scalp_v1_aggressive.discord_bot import notify_open, notify_close, notify_risk_blocked
-from reversion_scalp_v1_aggressive.config import EXCHANGE_ID, INITIAL_BALANCE, LOG_PATH, SYMBOLS, TF_CONTEXT, TF_ENTRY, SYMBOL_COOLDOWN_MINUTES, SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES
+from reversion_scalp_v1_aggressive.config import EXCHANGE_ID, INITIAL_BALANCE, LOG_PATH, SYMBOLS, TF_CONTEXT, TF_ENTRY, SYMBOL_COOLDOWN_MINUTES, SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES, MAX_CONCURRENT_TRADES, MAX_CONCURRENT_TRADES_PER_SYMBOL
 from reversion_scalp_v1_aggressive.db import init_db, insert_trade
 from reversion_scalp_v1_aggressive.execution import build_trade
 from reversion_scalp_v1_aggressive.exit_manager import manage_exit
@@ -44,16 +44,16 @@ def main():
     init_db()
     exchange = create_exchange()
     state = BotState(balance=INITIAL_BALANCE, daily_start_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
-    open_trade = None
     logging.info('Reversion Scalp v1 started | dry_run=%s | exchange=%s', args.dry_run, EXCHANGE_ID)
     cycle = 0
 
     while True:
         cycle += 1
-        logging.info('scan_cycle_start cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
+        logging.info('scan_cycle_start cycle=%s balance=%.6f open_trades=%s', cycle, state.balance, len(state.open_trades))
         ok, reason = risk_checks(state)
         if not ok:
             logging.warning('risk blocked: %s', reason)
+            notify_risk_blocked(reason)
             time.sleep(15)
             continue
 
@@ -68,50 +68,59 @@ def main():
             except Exception as exc:
                 logging.warning('fetch failed %s: %s', symbol, exc)
 
-        if open_trade is None:
+        if len(state.open_trades) < MAX_CONCURRENT_TRADES:
             signal, diagnostics = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
             if signal:
                 cooldown_key = f"{signal['symbol']}|{signal['direction']}"
                 now_ts = datetime.now(timezone.utc).timestamp()
                 cooldown_until = state.symbol_cooldowns.get(cooldown_key)
-                if cooldown_until and now_ts < cooldown_until:
+                same_symbol_open = sum(1 for t in state.open_trades if t['symbol'] == signal['symbol'])
+                if same_symbol_open >= MAX_CONCURRENT_TRADES_PER_SYMBOL:
+                    diagnostics[signal['symbol']] = {'rejected': 'max_open_trades_per_symbol', 'direction': signal['direction']}
+                    logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s diagnostics=%s', cycle, len(symbol_to_candles_5m), diagnostics)
+                elif cooldown_until and now_ts < cooldown_until:
                     diagnostics[signal['symbol']] = {'rejected': 'symbol_direction_cooldown', 'direction': signal['direction']}
                     logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s diagnostics=%s', cycle, len(symbol_to_candles_5m), diagnostics)
                 else:
                     trade = build_trade(signal, state.balance)
                     if trade:
                         trade['opened_at'] = datetime.now(timezone.utc)
-                        open_trade = trade
+                        state.open_trades.append(trade)
                         logging.info('OPEN %s %s entry=%s sl=%s tp=%s size=%s score=%.3f stretch=%.6f zscore=%.3f', trade['symbol'], trade['direction'], trade['entry'], trade['sl'], trade['tp'], trade['size'], trade['score'], trade['stretch'], trade['zscore'])
                         notify_open(trade)
-
             else:
                 logging.info('scan_cycle_no_signal cycle=%s symbols_ready=%s diagnostics=%s', cycle, len(symbol_to_candles_5m), diagnostics)
-        else:
+
+        remaining_open_trades = []
+        for open_trade in state.open_trades:
             candles = symbol_to_candles_5m.get(open_trade['symbol'])
-            if candles:
-                candle = candles[-1]
-                current_price = candle[4]
-                minutes_elapsed = (datetime.now(timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
-                rsi_5m = rsi([c[4] for c in candles], 14)
-                exit_price, exit_reason, closed = manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
-                logging.info('MANAGE %s %s price=%s sl=%s tp=%s reason=%s minutes=%.2f', open_trade['symbol'], open_trade['direction'], current_price, open_trade['sl'], open_trade['tp'], exit_reason, minutes_elapsed)
-                if closed:
-                    gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
-                    fee = open_trade['fee'] + open_trade['slippage']
-                    pnl = gross - fee
-                    state.balance += pnl
-                    state.session_peak_balance = max(state.session_peak_balance, state.balance)
-                    state.trades_today += 1
-                    state.consecutive_losses = state.consecutive_losses + 1 if pnl <= 0 else 0
-                    cooldown_key = f"{open_trade['symbol']}|{open_trade['direction']}"
-                    cooldown_minutes = SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES if pnl <= 0 else SYMBOL_COOLDOWN_MINUTES
-                    state.symbol_cooldowns[cooldown_key] = datetime.now(timezone.utc).timestamp() + (cooldown_minutes * 60)
-                    insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['symbol'], open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, exit_reason, state.balance, open_trade.get('score'), open_trade.get('stretch'), open_trade.get('context_rsi'), open_trade.get('zscore'), minutes_elapsed, open_trade.get('mfe'), open_trade.get('mae'), open_trade.get('peak_progress')))
-                    logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s mfe=%.6f mae=%.6f peak_progress=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6), open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
-                    notify_close(open_trade, pnl, exit_reason, state.balance)
-                    open_trade = None
-        logging.info('scan_cycle_end cycle=%s balance=%.6f open_trade=%s', cycle, state.balance, bool(open_trade))
+            if not candles:
+                remaining_open_trades.append(open_trade)
+                continue
+            candle = candles[-1]
+            current_price = candle[4]
+            minutes_elapsed = (datetime.now(timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
+            rsi_5m = rsi([c[4] for c in candles], 14)
+            exit_price, exit_reason, closed = manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
+            logging.info('MANAGE %s %s price=%s sl=%s tp=%s reason=%s minutes=%.2f', open_trade['symbol'], open_trade['direction'], current_price, open_trade['sl'], open_trade['tp'], exit_reason, minutes_elapsed)
+            if closed:
+                gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
+                fee = open_trade['fee'] + open_trade['slippage']
+                pnl = gross - fee
+                state.balance += pnl
+                state.session_peak_balance = max(state.session_peak_balance, state.balance)
+                state.trades_today += 1
+                state.consecutive_losses = state.consecutive_losses + 1 if pnl <= 0 else 0
+                cooldown_key = f"{open_trade['symbol']}|{open_trade['direction']}"
+                cooldown_minutes = SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES if pnl <= 0 else SYMBOL_COOLDOWN_MINUTES
+                state.symbol_cooldowns[cooldown_key] = datetime.now(timezone.utc).timestamp() + (cooldown_minutes * 60)
+                insert_trade((datetime.now(timezone.utc).isoformat(), open_trade['symbol'], open_trade['direction'], open_trade['entry'], exit_price, open_trade['size'], pnl, fee, exit_reason, state.balance, open_trade.get('score'), open_trade.get('stretch'), open_trade.get('context_rsi'), open_trade.get('zscore'), minutes_elapsed, open_trade.get('mfe'), open_trade.get('mae'), open_trade.get('peak_progress')))
+                logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s mfe=%.6f mae=%.6f peak_progress=%.3f', open_trade['symbol'], open_trade['direction'], round(pnl, 6), round(fee, 6), exit_reason, round(state.balance, 6), open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
+                notify_close(open_trade, pnl, exit_reason, state.balance)
+            else:
+                remaining_open_trades.append(open_trade)
+        state.open_trades = remaining_open_trades
+        logging.info('scan_cycle_end cycle=%s balance=%.6f open_trades=%s', cycle, state.balance, len(state.open_trades))
         time.sleep(20)
 
 

@@ -51,10 +51,15 @@ def open_trade_from_signal(signal, balance, opened_at=None):
     if not trade:
         return None
     trade['opened_at'] = opened_at or datetime.now(timezone.utc)
+    trade['last_processed_candle_ts'] = None
     return trade
 
 
 def manage_trade_step(open_trade, candle, minutes_elapsed, rsi_5m):
+    candle_ts = candle[0]
+    if open_trade.get('last_processed_candle_ts') == candle_ts:
+        return candle[4], 'HOLD', False
+    open_trade['last_processed_candle_ts'] = candle_ts
     current_price = candle[4]
     return manage_exit(open_trade, current_price, candle, minutes_elapsed, rsi_5m)
 

@@ -135,8 +135,18 @@ def run_backtest(days=30, symbols=None):
         pending_trades = still_pending
 
         symbol_to_candles_5m, symbol_to_candles_15m, symbol_to_latest_1m = build_snapshot_from_1m(data_1m, symbols, scan_ts)
+        state_for_selection = BotState(
+            balance=state.balance,
+            daily_start_balance=state.daily_start_balance,
+            session_peak_balance=state.session_peak_balance,
+            trades_today=state.trades_today,
+            consecutive_losses=state.consecutive_losses,
+            pause_until=state.pause_until,
+            symbol_cooldowns=state.symbol_cooldowns,
+            open_trades=state.open_trades + [p['trade'] for p in pending_trades],
+        )
         selected_signals, diagnostics = select_signals(
-            state,
+            state_for_selection,
             symbol_to_candles_5m,
             symbol_to_candles_15m,
             timestamp.timestamp(),

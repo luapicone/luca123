@@ -50,7 +50,17 @@ def main():
         pending_trades = still_pending
 
         s5, s15, _ = build_snapshot_from_1m(data_1m, [args.symbol], scan_ts)
-        selected, _ = select_signals(state, s5, s15, timestamp.timestamp(), max_new_signals=1)
+        state_for_selection = BotState(
+            balance=state.balance,
+            daily_start_balance=state.daily_start_balance,
+            session_peak_balance=state.session_peak_balance,
+            trades_today=state.trades_today,
+            consecutive_losses=state.consecutive_losses,
+            pause_until=state.pause_until,
+            symbol_cooldowns=state.symbol_cooldowns,
+            open_trades=state.open_trades + [p['trade'] for p in pending_trades],
+        )
+        selected, _ = select_signals(state_for_selection, s5, s15, timestamp.timestamp(), max_new_signals=1)
         for signal in selected:
             trade = open_trade_from_signal(signal, state.balance, opened_at=timestamp)
             next_bar = next_1m_bar_after(data_1m[args.symbol], scan_ts)

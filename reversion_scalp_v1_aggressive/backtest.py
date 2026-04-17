@@ -17,10 +17,7 @@ from reversion_scalp_v1_aggressive.config import (
     SYMBOL_COOLDOWN_MINUTES,
     SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES,
 )
-from reversion_scalp_v1_aggressive.execution import build_trade
-from reversion_scalp_v1_aggressive.exit_manager import manage_exit
-from reversion_scalp_v1_aggressive.indicators import rsi
-from reversion_scalp_v1_aggressive.scanner import scan_all_assets
+from reversion_scalp_v1_aggressive.engine import close_trade, compute_rsi_from_candles, manage_trade_step, open_trade_from_signal, select_signals
 from reversion_scalp_v1_aggressive.state import BotState
 
 TRADES_CSV = Path('reversion_scalp_v1_aggressive_backtest_trades.csv')
@@ -138,42 +135,24 @@ def run_backtest(days=30, symbols=None):
         pending_trades = still_pending
 
         symbol_to_candles_5m, symbol_to_candles_15m, symbol_to_latest_1m = build_snapshot_from_1m(data_1m, symbols, scan_ts)
-        diagnostics = {}
-        selected_signals = []
-
-        if len(state.open_trades) < MAX_CONCURRENT_TRADES and symbol_to_candles_5m:
-            candidates = []
-            for symbol, candles_5m in symbol_to_candles_5m.items():
-                signal, symbol_diagnostics = scan_all_assets({symbol: candles_5m}, {symbol: symbol_to_candles_15m[symbol]})
-                if signal:
-                    candidates.append(signal)
-                elif symbol_diagnostics:
-                    diagnostics[symbol] = symbol_diagnostics.get(symbol, {'rejected': 'no_signal'})
-
-            candidates = sorted(candidates, key=lambda x: x['score'], reverse=True)
-            for signal in candidates:
-                if len(state.open_trades) + len(pending_trades) >= MAX_CONCURRENT_TRADES:
-                    break
-                cooldown_key = f"{signal['symbol']}|{signal['direction']}"
-                cooldown_until = state.symbol_cooldowns.get(cooldown_key)
-                same_symbol_open = sum(1 for t in state.open_trades if t['symbol'] == signal['symbol'])
-                same_symbol_pending = sum(1 for t in pending_trades if t['trade']['symbol'] == signal['symbol'])
-                if same_symbol_open + same_symbol_pending >= MAX_CONCURRENT_TRADES_PER_SYMBOL:
-                    diagnostics[signal['symbol']] = {'rejected': 'max_open_trades_per_symbol'}
-                    continue
-                if cooldown_until and timestamp.timestamp() < cooldown_until:
-                    diagnostics[signal['symbol']] = {'rejected': 'symbol_direction_cooldown'}
-                    continue
-                trade = build_trade(signal, state.balance)
-                if not trade:
-                    diagnostics[signal['symbol']] = {'rejected': 'trade_build_failed'}
-                    continue
-                next_bar = next_1m_bar_after(data_1m[signal['symbol']], scan_ts)
-                if not next_bar:
-                    diagnostics[signal['symbol']] = {'rejected': 'no_next_bar'}
-                    continue
-                pending_trades.append({'trade': trade, 'activate_at': next_bar[0]})
-                selected_signals.append(signal)
+        selected_signals, diagnostics = select_signals(
+            state,
+            symbol_to_candles_5m,
+            symbol_to_candles_15m,
+            timestamp.timestamp(),
+            max_new_signals=max(0, MAX_CONCURRENT_TRADES - len(state.open_trades) - len(pending_trades)),
+        )
+        for signal in selected_signals:
+            trade = open_trade_from_signal(signal, state.balance, opened_at=timestamp)
+            if not trade:
+                diagnostics[signal['symbol']] = {'rejected': 'trade_build_failed'}
+                continue
+            next_bar = next_1m_bar_after(data_1m[signal['symbol']], scan_ts)
+            if not next_bar:
+                diagnostics[signal['symbol']] = {'rejected': 'no_next_bar'}
+                continue
+            trade.pop('opened_at', None)
+            pending_trades.append({'trade': trade, 'activate_at': next_bar[0]})
 
         remaining_open = []
         closed_count = 0
@@ -189,47 +168,21 @@ def run_backtest(days=30, symbols=None):
             symbol_rows = [r for r in data_1m[open_trade['symbol']] if int(open_trade['opened_at'].timestamp() * 1000) < r[0] <= scan_ts]
             base_1m_rows = [r for r in data_1m[open_trade['symbol']] if r[0] <= scan_ts]
             candles_5m_for_rsi = aggregate_candles(base_1m_rows, TIMEFRAME_MS['5m'], scan_ts)
-            rsi_5m = rsi([c[4] for c in candles_5m_for_rsi[-120:]], 14) if len(candles_5m_for_rsi) >= 15 else None
+            rsi_5m = compute_rsi_from_candles(candles_5m_for_rsi[-120:])
             closed = False
             exit_price = current_1m[4]
             exit_reason = 'HOLD'
+            minutes_elapsed = 0.0
             for candle_1m in symbol_rows:
                 minutes_elapsed = (datetime.fromtimestamp((candle_1m[0] + TIMEFRAME_MS['1m']) / 1000, tz=timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
-                exit_price, exit_reason, closed = manage_exit(open_trade, candle_1m[4], candle_1m, minutes_elapsed, rsi_5m)
+                exit_price, exit_reason, closed = manage_trade_step(open_trade, candle_1m, minutes_elapsed, rsi_5m)
                 if closed:
                     break
 
             if closed:
-                gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
-                fee = open_trade['fee'] + open_trade['slippage']
-                pnl = gross - fee
-                state.balance += pnl
-                state.session_peak_balance = max(state.session_peak_balance, state.balance)
-                state.trades_today += 1
-                state.consecutive_losses = state.consecutive_losses + 1 if pnl <= 0 else 0
-                cooldown_key = f"{open_trade['symbol']}|{open_trade['direction']}"
-                cooldown_minutes = SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES if pnl <= 0 else SYMBOL_COOLDOWN_MINUTES
-                state.symbol_cooldowns[cooldown_key] = timestamp.timestamp() + (cooldown_minutes * 60)
-                trades.append({
-                    'timestamp': timestamp.isoformat(),
-                    'symbol': open_trade['symbol'],
-                    'direction': open_trade['direction'],
-                    'entry_price': open_trade['entry'],
-                    'exit_price': exit_price,
-                    'size': open_trade['size'],
-                    'pnl': pnl,
-                    'fee': fee,
-                    'exit_reason': exit_reason,
-                    'balance_after': state.balance,
-                    'score': open_trade.get('score'),
-                    'stretch': open_trade.get('stretch'),
-                    'context_rsi': open_trade.get('context_rsi'),
-                    'zscore': open_trade.get('zscore'),
-                    'hold_minutes': minutes_elapsed,
-                    'mfe': open_trade.get('mfe'),
-                    'mae': open_trade.get('mae'),
-                    'peak_progress': open_trade.get('peak_progress'),
-                })
+                trade_row = close_trade(state, open_trade, exit_price, exit_reason, timestamp)
+                trade_row['hold_minutes'] = minutes_elapsed
+                trades.append(trade_row)
                 closed_count += 1
             else:
                 remaining_open.append(open_trade)

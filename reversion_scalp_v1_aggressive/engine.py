@@ -52,6 +52,7 @@ def open_trade_from_signal(signal, balance, opened_at=None):
         return None
     trade['opened_at'] = opened_at or datetime.now(timezone.utc)
     trade['last_processed_candle_ts'] = None
+    trade['last_replayed_minute_ts'] = None
     return trade
 
 

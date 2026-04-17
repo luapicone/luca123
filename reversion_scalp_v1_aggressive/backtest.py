@@ -165,7 +165,9 @@ def run_backtest(days=30, symbols=None):
                 remaining_open.append(open_trade)
                 continue
 
-            symbol_rows = [r for r in data_1m[open_trade['symbol']] if int(open_trade['opened_at'].timestamp() * 1000) < r[0] <= scan_ts]
+            last_replayed_minute_ts = open_trade.get('last_replayed_minute_ts')
+            lower_bound = last_replayed_minute_ts if last_replayed_minute_ts is not None else int(open_trade['opened_at'].timestamp() * 1000)
+            symbol_rows = [r for r in data_1m[open_trade['symbol']] if lower_bound < r[0] <= scan_ts]
             base_1m_rows = [r for r in data_1m[open_trade['symbol']] if r[0] <= scan_ts]
             candles_5m_for_rsi = aggregate_candles(base_1m_rows, TIMEFRAME_MS['5m'], scan_ts)
             rsi_5m = compute_rsi_from_candles(candles_5m_for_rsi[-120:])
@@ -174,6 +176,7 @@ def run_backtest(days=30, symbols=None):
             exit_reason = 'HOLD'
             minutes_elapsed = 0.0
             for candle_1m in symbol_rows:
+                open_trade['last_replayed_minute_ts'] = candle_1m[0]
                 minutes_elapsed = (datetime.fromtimestamp((candle_1m[0] + TIMEFRAME_MS['1m']) / 1000, tz=timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
                 exit_price, exit_reason, closed = manage_trade_step(open_trade, candle_1m, minutes_elapsed, rsi_5m)
                 if closed:

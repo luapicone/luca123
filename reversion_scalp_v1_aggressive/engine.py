@@ -20,7 +20,11 @@ def select_signals(state, symbol_to_candles_5m, symbol_to_candles_15m, now_ts, m
 
     candidates = []
     for symbol, candles_5m in symbol_to_candles_5m.items():
-        signal, symbol_diagnostics = scan_all_assets({symbol: candles_5m}, {symbol: symbol_to_candles_15m[symbol]})
+        candles_15m = symbol_to_candles_15m.get(symbol)
+        if not candles_15m:
+            diagnostics[symbol] = {'rejected': 'missing_context_timeframe'}
+            continue
+        signal, symbol_diagnostics = scan_all_assets({symbol: candles_5m}, {symbol: candles_15m})
         if signal:
             candidates.append(signal)
         elif symbol_diagnostics:

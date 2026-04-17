@@ -132,7 +132,8 @@ def run_backtest(days=30, symbols=None):
     equity = []
     debug_rows = []
 
-    scan_ts = first_ts + (120 * TIMEFRAME_MS[TF_ENTRY])
+    required_warmup_ms = max(120 * TIMEFRAME_MS[TF_ENTRY], 120 * TIMEFRAME_MS[TF_CONTEXT])
+    scan_ts = first_ts + required_warmup_ms
     while scan_ts <= last_ts:
         timestamp = datetime.fromtimestamp(scan_ts / 1000, tz=timezone.utc)
 

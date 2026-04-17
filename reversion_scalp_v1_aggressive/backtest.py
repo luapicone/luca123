@@ -154,30 +154,41 @@ def run_backtest(days=30, symbols=None):
         signal = None
         diagnostics = {}
 
+        selected_signals = []
         if ok and len(state.open_trades) < MAX_CONCURRENT_TRADES and symbol_to_candles_5m:
-            signal, diagnostics = scan_all_assets(symbol_to_candles_5m, symbol_to_candles_15m)
-            if signal:
+            signal_candidates = []
+            diagnostics = {}
+            for symbol, candles_5m in symbol_to_candles_5m.items():
+                signal, symbol_diagnostics = scan_all_assets({symbol: candles_5m}, {symbol: symbol_to_candles_15m[symbol]})
+                if signal:
+                    signal_candidates.append(signal)
+                elif symbol_diagnostics:
+                    diagnostics[symbol] = symbol_diagnostics.get(symbol, {'rejected': 'no_signal'})
+
+            signal_candidates = sorted(signal_candidates, key=lambda x: x['score'], reverse=True)
+            for signal in signal_candidates:
+                if len(state.open_trades) + len(pending_trades) >= MAX_CONCURRENT_TRADES:
+                    break
                 cooldown_key = f"{signal['symbol']}|{signal['direction']}"
                 cooldown_until = state.symbol_cooldowns.get(cooldown_key)
                 same_symbol_open = sum(1 for t in state.open_trades if t['symbol'] == signal['symbol'])
                 same_symbol_pending = sum(1 for t in pending_trades if t['trade']['symbol'] == signal['symbol'])
                 if same_symbol_open + same_symbol_pending >= MAX_CONCURRENT_TRADES_PER_SYMBOL:
                     diagnostics[signal['symbol']] = {'rejected': 'max_open_trades_per_symbol'}
-                    signal = None
-                elif cooldown_until and timestamp.timestamp() < cooldown_until:
+                    continue
+                if cooldown_until and timestamp.timestamp() < cooldown_until:
                     diagnostics[signal['symbol']] = {'rejected': 'symbol_direction_cooldown'}
-                    signal = None
-                else:
-                    trade = build_trade(signal, state.balance)
-                    if trade:
-                        next_row = next_bar_after(data_5m[signal['symbol']], scan_ts)
-                        if next_row is not None:
-                            pending_trades.append({'trade': trade, 'activate_at': next_row[0]})
-                        else:
-                            diagnostics[signal['symbol']] = {'rejected': 'no_next_bar'}
-                    else:
-                        diagnostics[signal['symbol']] = {'rejected': 'trade_build_failed'}
-                        signal = None
+                    continue
+                trade = build_trade(signal, state.balance)
+                if not trade:
+                    diagnostics[signal['symbol']] = {'rejected': 'trade_build_failed'}
+                    continue
+                next_row = next_bar_after(data_5m[signal['symbol']], scan_ts)
+                if next_row is None:
+                    diagnostics[signal['symbol']] = {'rejected': 'no_next_bar'}
+                    continue
+                pending_trades.append({'trade': trade, 'activate_at': next_row[0]})
+                selected_signals.append(signal)
 
         remaining_open = []
         closed_count = 0
@@ -244,9 +255,9 @@ def run_backtest(days=30, symbols=None):
             'open_trades': len(state.open_trades),
             'pending_trades': len(pending_trades),
             'activated': ','.join(activated),
-            'selected_symbol': signal['symbol'] if signal else '',
-            'selected_direction': signal['direction'] if signal else '',
-            'selected_score': round(signal['score'], 6) if signal else '',
+            'selected_symbol': '|'.join(s['symbol'] for s in selected_signals),
+            'selected_direction': '|'.join(s['direction'] for s in selected_signals),
+            'selected_score': '|'.join(str(round(s['score'], 6)) for s in selected_signals),
             'closed_trades': closed_count,
             'balance': round(state.balance, 6),
             'risk_ok': ok,

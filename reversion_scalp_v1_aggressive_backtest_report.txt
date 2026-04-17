@@ -1,0 +1,15 @@
+===== REVERSION SCALP V1 AGGRESSIVE 1M LIVE-LIKE REPLAY =====
+trades: 39
+wins: 9
+losses: 30
+win_rate_pct: 23.08
+total_pnl: -6.004869
+
+===== DATA COVERAGE =====
+SOL/USDT:USDT: candles_1m=4320 range_1m=2026-04-14T02:23:00+00:00 -> 2026-04-17T02:22:00+00:00
+
+===== PNL BY SYMBOL =====
+SOL/USDT:USDT: trades=39 pnl=-6.004869 avg=-0.153971 win_rate_pct=23.08
+
+===== EXIT REASONS =====
+SL: trades=39 pnl=-6.004869

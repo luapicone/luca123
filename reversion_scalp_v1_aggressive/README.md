@@ -43,6 +43,11 @@ To test credential reading and futures balance access without enabling live trad
 python3 -m reversion_scalp_v1_aggressive.test_live_connection
 ```
 
+To run a preflight check against Binance Futures USDT-M without sending orders:
+```bash
+python3 -m reversion_scalp_v1_aggressive.live_preflight
+```
+
 
 The current tuning was relaxed from extreme-reversion mode toward moderate reversion: smaller VWAP/Bollinger dislocations and softer RSI extremes can now qualify, while the score and reversal-candle confirmation still try to keep quality acceptable.
 

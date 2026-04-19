@@ -11,6 +11,7 @@ from reversion_scalp_v1_aggressive.db import init_db, insert_trade
 from reversion_scalp_v1_aggressive.engine import close_trade, compute_rsi_from_candles, manage_trade_step, open_trade_from_signal, select_signals
 from reversion_scalp_v1_aggressive.live_execution import emergency_close, live_open_trade, place_protective_orders, live_close_trade
 from reversion_scalp_v1_aggressive.reconciliation import reconcile_on_boot
+from reversion_scalp_v1_aggressive.operational_guard import OperationalGuard
 from reversion_scalp_v1_aggressive.risk import risk_checks
 from reversion_scalp_v1_aggressive.state import BotState
 
@@ -122,12 +123,16 @@ def main():
     validate_live_symbols(exchange, settings)
     state = BotState(balance=INITIAL_BALANCE, daily_start_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
     reconcile_on_boot(exchange, state, settings)
+    guard = OperationalGuard(notify_fn=None)  # reemplazar notify_fn con tu función de Discord si querés alertas críticas
     logging.info('Reversion Scalp v1 started | live=%s | exchange=%s', settings.enabled, EXCHANGE_ID)
     cycle = 0
 
     while True:
         cycle += 1
         logging.info('scan_cycle_start cycle=%s balance=%.6f open_trades=%s', cycle, state.balance, len(state.open_trades))
+        if not guard.check_ok():
+            continue
+        cycle_had_errors = False
         ok, reason = risk_checks(state)
         if not ok:
             logging.warning('risk blocked: %s', reason)
@@ -145,6 +150,8 @@ def main():
                 logging.info('fetch_done cycle=%s symbol=%s candles_5m=%s candles_15m=%s', cycle, symbol, len(symbol_to_candles_5m[symbol]), len(symbol_to_candles_15m[symbol]))
             except Exception as exc:
                 logging.warning('fetch failed %s: %s', symbol, exc)
+                guard.record_error('fetch_ohlcv', symbol, exc)
+                cycle_had_errors = True
 
         if len(state.open_trades) < MAX_CONCURRENT_TRADES:
             selected_signals, diagnostics = select_signals(
@@ -164,6 +171,8 @@ def main():
                                 place_protective_orders(exchange, trade, settings)
                             except RuntimeError as exc:
                                 logging.error('protective orders failed after real entry: %s', exc)
+                                guard.record_error('place_protective_orders', trade['symbol'], exc)
+                                cycle_had_errors = True
                                 emergency_ok = emergency_close(exchange, trade)
                                 if emergency_ok:
                                     # Posición cerrada limpiamente, descartar
@@ -230,6 +239,8 @@ def main():
                         exit_price = real_fill
                     except RuntimeError as exc:
                         logging.error('live_close_trade failed, keeping trade open locally: %s', exc)
+                        guard.record_error('live_close_trade', open_trade['symbol'], exc)
+                        cycle_had_errors = True
                         remaining_open_trades.append(open_trade)
                         continue
 
@@ -246,6 +257,7 @@ def main():
                 remaining_open_trades.append(open_trade)
 
         state.open_trades = remaining_open_trades
+        guard.record_cycle_end(cycle_had_errors)
         logging.info('scan_cycle_end cycle=%s balance=%.6f open_trades=%s', cycle, state.balance, len(state.open_trades))
         time.sleep(20)
 

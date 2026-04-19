@@ -132,7 +132,7 @@ def _normalize_price(exchange, symbol, market, price, label):
     try:
         normalized = float(exchange.price_to_precision(symbol, price))
         if normalized != price:
-            logging.info('_normalize_price %s %s: %.8f → %.8f', label, symbol, price, normalized)
+            logging.info('_normalize_price %s %s: %.8f -> %.8f', label, symbol, price, normalized)
         return normalized
     except Exception as exc:
         logging.warning('price_to_precision failed %s %s: %s — usando round fallback', label, symbol, exc)

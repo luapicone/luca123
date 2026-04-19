@@ -127,3 +127,6 @@ MAX_CONCURRENT_TRADES_PER_SYMBOL = 1
 
 SYMBOL_COOLDOWN_MINUTES = 20
 SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES = 40
+
+MANAGE_INTERVAL_S = 3   # frecuencia de monitoreo de posiciones abiertas
+SCAN_INTERVAL_S = 30    # frecuencia de scan completo para buscar entradas

@@ -1,4 +1,3 @@
-import argparse
 import logging
 import time
 from datetime import datetime, timezone
@@ -26,7 +25,7 @@ if not ok:
 
 if settings.enabled:
     logging.warning("=" * 60)
-    logging.warning("LIVE MODE REQUESTED")
+    logging.warning("LIVE MODE ACTIVE")
     logging.warning("=" * 60)
 else:
     logging.info("PAPER MODE")
@@ -113,10 +112,6 @@ def fetch_ohlcv_safe(exchange, symbol, timeframe, limit=120, retries=5):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dry-run', action='store_true', default=True)
-    args = parser.parse_args()
-
     init_db()
     exchange = create_exchange(settings)
     validate_live_exchange_access(exchange, settings)

@@ -22,6 +22,8 @@ from reversion_scalp_v1_aggressive.state import BotState
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', handlers=[logging.FileHandler(LOG_PATH), logging.StreamHandler()])
 
+MAX_CLOSED_TRADES_PER_RUN = 5
+
 settings = load_live_settings()
 ok, reason = validate_live_settings(settings)
 
@@ -130,6 +132,8 @@ def _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, 
                  round(trade_row['fee'], 6), exit_reason, round(state.balance, 6),
                  open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
     notify_close(open_trade, trade_row['pnl'], exit_reason, state.balance)
+    state.closed_trades_this_run = getattr(state, 'closed_trades_this_run', 0) + 1
+    logging.info('closed_trades_this_run=%s/%s', state.closed_trades_this_run, MAX_CLOSED_TRADES_PER_RUN)
     return True  # cerrado correctamente
 
 
@@ -178,6 +182,7 @@ def main():
     validate_live_exchange_access(exchange, settings)
     validate_live_symbols(exchange, settings)
     state = BotState(balance=INITIAL_BALANCE, daily_start_balance=INITIAL_BALANCE, session_peak_balance=INITIAL_BALANCE)
+    state.closed_trades_this_run = 0
     reconcile_on_boot(exchange, state, settings)
     guard = OperationalGuard(notify_fn=None)
     logging.info('Reversion Scalp v1 started | live=%s | exchange=%s | manage_interval=%ss | scan_interval=%ss',
@@ -209,6 +214,9 @@ def main():
 
         if state.open_trades:
             _manage_trades(state, symbol_to_candles_5m_fast, exchange, guard, manage_cycle)
+            if state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
+                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
+                return
 
         # ----------------------------------------------------------------
         # CICLO LENTO (cada SCAN_INTERVAL_S): buscar nuevas entradas
@@ -293,6 +301,9 @@ def main():
 
             # También correr manage con los candles frescos del scan
             _manage_trades(state, symbol_to_candles_5m, exchange, guard, manage_cycle)
+            if state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
+                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
+                return
 
             guard.record_cycle_end(cycle_had_errors)
             logging.info('scan_cycle_end scan=%s balance=%.6f open_trades=%s',

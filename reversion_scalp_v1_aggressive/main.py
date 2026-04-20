@@ -22,8 +22,6 @@ from reversion_scalp_v1_aggressive.state import BotState
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', handlers=[logging.FileHandler(LOG_PATH), logging.StreamHandler()])
 
-MAX_CLOSED_TRADES_PER_RUN = 5
-
 settings = load_live_settings()
 ok, reason = validate_live_settings(settings)
 
@@ -133,7 +131,7 @@ def _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, 
                  open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
     notify_close(open_trade, trade_row['pnl'], exit_reason, state.balance)
     state.closed_trades_this_run = getattr(state, 'closed_trades_this_run', 0) + 1
-    logging.info('closed_trades_this_run=%s/%s', state.closed_trades_this_run, MAX_CLOSED_TRADES_PER_RUN)
+    logging.info('closed_trades_this_run=%s/%s', state.closed_trades_this_run, settings.max_closed_trades_per_run)
     return True  # cerrado correctamente
 
 
@@ -214,8 +212,8 @@ def main():
 
         if state.open_trades:
             _manage_trades(state, symbol_to_candles_5m_fast, exchange, guard, manage_cycle)
-            if state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
-                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
+            if settings.max_closed_trades_per_run > 0 and state.closed_trades_this_run >= settings.max_closed_trades_per_run and not state.open_trades:
+                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', settings.max_closed_trades_per_run)
                 return
 
         # ----------------------------------------------------------------
@@ -301,8 +299,8 @@ def main():
 
             # También correr manage con los candles frescos del scan
             _manage_trades(state, symbol_to_candles_5m, exchange, guard, manage_cycle)
-            if state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
-                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
+            if settings.max_closed_trades_per_run > 0 and state.closed_trades_this_run >= settings.max_closed_trades_per_run and not state.open_trades:
+                logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', settings.max_closed_trades_per_run)
                 return
 
             guard.record_cycle_end(cycle_had_errors)

@@ -58,6 +58,7 @@ MAX_CLOSED_TRADES_PER_RUN = 5
 DATA_DIR = Path('reversion_scalp_v1_aggressive/data')
 DB_PATH = DATA_DIR / 'trades.db'
 LOG_PATH = DATA_DIR / 'bot.log'
+NOTIFICATIONS_LOG_PATH = DATA_DIR / 'notifications.txt'
 BACKTEST_REPORT = Path('reversion_scalp_v1_aggressive_backtest_report.txt')
 EQUITY_CURVE_CSV = Path('reversion_scalp_v1_aggressive_equity_curve.csv')
 

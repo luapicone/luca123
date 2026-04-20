@@ -1,7 +1,21 @@
+from datetime import datetime, timezone
+
 import requests
-from reversion_scalp_v1_aggressive.config import DISCORD_WEBHOOK_URL
+from reversion_scalp_v1_aggressive.config import DISCORD_WEBHOOK_URL, NOTIFICATIONS_LOG_PATH
+
+
+def _append_notification_log(message: str):
+    try:
+        NOTIFICATIONS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with NOTIFICATIONS_LOG_PATH.open('a', encoding='utf-8') as f:
+            ts = datetime.now(timezone.utc).isoformat()
+            f.write(f'[{ts}]\n{message}\n\n')
+    except Exception:
+        pass
+
 
 def send_discord(message: str):
+    _append_notification_log(message)
     try:
         requests.post(DISCORD_WEBHOOK_URL, json={"content": message}, timeout=5)
     except Exception:

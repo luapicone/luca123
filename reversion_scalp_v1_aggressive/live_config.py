@@ -11,7 +11,6 @@ class LiveSettings:
     api_secret: str | None
     max_live_concurrent_trades: int
     max_live_symbol_notional: float
-    max_closed_trades_per_run: int
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -25,7 +24,6 @@ def load_live_settings() -> LiveSettings:
         api_secret=os.getenv("BINANCE_API_SECRET"),
         max_live_concurrent_trades=int(os.getenv("MAX_LIVE_CONCURRENT_TRADES", "1")),
         max_live_symbol_notional=float(os.getenv("MAX_LIVE_SYMBOL_NOTIONAL", "10")),
-        max_closed_trades_per_run=int(os.getenv("MAX_CLOSED_TRADES_PER_RUN", "5")),
     )
 
 def validate_live_settings(settings: LiveSettings):

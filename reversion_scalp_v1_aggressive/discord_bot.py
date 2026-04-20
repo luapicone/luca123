@@ -1,7 +1,8 @@
+import csv
 from datetime import datetime, timezone
 
 import requests
-from reversion_scalp_v1_aggressive.config import DISCORD_WEBHOOK_URL, NOTIFICATIONS_LOG_PATH
+from reversion_scalp_v1_aggressive.config import DISCORD_WEBHOOK_URL, NOTIFICATIONS_LOG_PATH, NOTIFICATIONS_CSV_PATH
 
 
 def _append_notification_log(message: str):
@@ -10,6 +11,23 @@ def _append_notification_log(message: str):
         with NOTIFICATIONS_LOG_PATH.open('a', encoding='utf-8') as f:
             ts = datetime.now(timezone.utc).isoformat()
             f.write(f'[{ts}]\n{message}\n\n')
+    except Exception:
+        pass
+
+
+def _append_notification_csv(row: dict):
+    try:
+        NOTIFICATIONS_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
+        file_exists = NOTIFICATIONS_CSV_PATH.exists()
+        fieldnames = [
+            'timestamp', 'event', 'symbol', 'direction', 'entry', 'sl', 'tp',
+            'size', 'score', 'exit_reason', 'pnl', 'balance'
+        ]
+        with NOTIFICATIONS_CSV_PATH.open('a', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow({k: row.get(k, '') for k in fieldnames})
     except Exception:
         pass
 
@@ -31,6 +49,17 @@ def notify_open(trade: dict):
         f"📦 Size: `{trade['size']}`\n"
         f"⚡ Score: `{trade.get('score', 0):.3f}`"
     )
+    _append_notification_csv({
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'event': 'OPEN',
+        'symbol': trade.get('symbol'),
+        'direction': trade.get('direction'),
+        'entry': trade.get('entry'),
+        'sl': trade.get('sl'),
+        'tp': trade.get('tp'),
+        'size': trade.get('size'),
+        'score': trade.get('score'),
+    })
     send_discord(msg)
 
 def notify_close(trade: dict, pnl: float, exit_reason: str, balance: float):
@@ -42,6 +71,20 @@ def notify_close(trade: dict, pnl: float, exit_reason: str, balance: float):
         f"💰 P&L: `{pnl_str}`\n"
         f"🏦 Balance: `${balance:.4f}`"
     )
+    _append_notification_csv({
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'event': 'CLOSE',
+        'symbol': trade.get('symbol'),
+        'direction': trade.get('direction'),
+        'entry': trade.get('entry'),
+        'sl': trade.get('sl'),
+        'tp': trade.get('tp'),
+        'size': trade.get('size'),
+        'score': trade.get('score'),
+        'exit_reason': exit_reason,
+        'pnl': pnl,
+        'balance': balance,
+    })
     send_discord(msg)
 
 def notify_risk_blocked(reason: str):

@@ -59,6 +59,7 @@ DATA_DIR = Path('reversion_scalp_v1_aggressive/data')
 DB_PATH = DATA_DIR / 'trades.db'
 LOG_PATH = DATA_DIR / 'bot.log'
 NOTIFICATIONS_LOG_PATH = DATA_DIR / 'notifications.txt'
+NOTIFICATIONS_CSV_PATH = DATA_DIR / 'notifications.csv'
 BACKTEST_REPORT = Path('reversion_scalp_v1_aggressive_backtest_report.txt')
 EQUITY_CURVE_CSV = Path('reversion_scalp_v1_aggressive_equity_curve.csv')
 

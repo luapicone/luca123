@@ -1,37 +1,8 @@
 from pathlib import Path
 
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1493101893608804412/G75jhjvHaCXEXXvv6hOwnO2qScnUjFKNFDH5JgOPx6R8nWMOGVizceCRPtEC5AQJHIMU"
-SYMBOLS = [
-    "SOL/USDT:USDT",
-    #"XRP/USDT:USDT",
-    #"ADA/USDT:USDT",
-    #"DOGE/USDT:USDT",
-    #"AVAX/USDT:USDT",
-    #"DOT/USDT:USDT",
-    #"ATOM/USDT:USDT",
-    #"APT/USDT:USDT",
-    #"ARB/USDT:USDT",
-    #"OP/USDT:USDT",
-    #"INJ/USDT:USDT",
-    #"NEAR/USDT:USDT",
-    #"FIL/USDT:USDT",
-    #"TRX/USDT:USDT",
-    #"SUI/USDT:USDT",
-    #"SEI/USDT:USDT",
-    #"TIA/USDT:USDT",
-    #"UNI/USDT:USDT",
-    #"AAVE/USDT:USDT",
-    #"RUNE/USDT:USDT",
-    #"HBAR/USDT:USDT",
-    #"PEOPLE/USDT:USDT",
-    #"CRV/USDT:USDT",
-    #"SAND/USDT:USDT",
-    #"GALA/USDT:USDT",
-    #"APE/USDT:USDT",
-    #"DYDX/USDT:USDT",
-    #"WLD/USDT:USDT",
-    #"ENA/USDT:USDT",
-]
+SYMBOLS = ["SOL/USDT:USDT"]
+
 EXCHANGE_ID = "binanceusdm"
 INITIAL_BALANCE = 100.0
 RISK_PER_TRADE = 0.015

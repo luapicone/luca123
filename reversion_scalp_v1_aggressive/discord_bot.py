@@ -65,9 +65,10 @@ def notify_open(trade: dict):
 def notify_close(trade: dict, pnl: float, exit_reason: str, balance: float):
     emoji = "✅" if pnl > 0 else "❌"
     pnl_str = f"+${pnl:.4f}" if pnl > 0 else f"-${abs(pnl):.4f}"
+    exit_label = 'TP (neto negativo)' if exit_reason == 'TP_NET_NEGATIVE' else exit_reason
     msg = (
         f"{emoji} **CLOSE {trade['direction']} — {trade['symbol']}**\n"
-        f"📤 Salida: `{exit_reason}`\n"
+        f"📤 Salida: `{exit_label}`\n"
         f"💰 P&L: `{pnl_str}`\n"
         f"🏦 Balance: `${balance:.4f}`"
     )

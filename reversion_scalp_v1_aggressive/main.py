@@ -125,11 +125,14 @@ def _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, 
         trade_row.get('context_rsi'), trade_row.get('zscore'), trade_row['hold_minutes'],
         trade_row.get('mfe'), trade_row.get('mae'), trade_row.get('peak_progress'),
     ))
-    logging.info('CLOSE %s %s pnl=%s fee=%s reason=%s balance=%s mfe=%.6f mae=%.6f peak_progress=%.3f',
-                 open_trade['symbol'], open_trade['direction'], round(trade_row['pnl'], 6),
-                 round(trade_row['fee'], 6), exit_reason, round(state.balance, 6),
-                 open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0), open_trade.get('peak_progress', 0.0))
-    notify_close(open_trade, trade_row['pnl'], exit_reason, state.balance)
+    logging.info(
+        'CLOSE %s %s trigger_reason=%s final_reason=%s entry=%.6f exit=%.6f gross=%.6f fee=%.6f pnl=%.6f balance=%.6f mfe=%.6f mae=%.6f peak_progress=%.3f',
+        open_trade['symbol'], open_trade['direction'], trade_row.get('trigger_exit_reason'), trade_row['exit_reason'],
+        open_trade['entry'], trade_row['exit_price'], round(trade_row.get('gross', 0.0), 6), round(trade_row['fee'], 6),
+        round(trade_row['pnl'], 6), round(state.balance, 6), open_trade.get('mfe', 0.0), open_trade.get('mae', 0.0),
+        open_trade.get('peak_progress', 0.0)
+    )
+    notify_close(open_trade, trade_row['pnl'], trade_row['exit_reason'], state.balance)
     state.closed_trades_this_run = getattr(state, 'closed_trades_this_run', 0) + 1
     logging.info('closed_trades_this_run=%s/%s', state.closed_trades_this_run, MAX_CLOSED_TRADES_PER_RUN)
     return True  # cerrado correctamente

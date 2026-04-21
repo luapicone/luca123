@@ -73,6 +73,11 @@ def close_trade(state, open_trade, exit_price, exit_reason, closed_at):
     gross = (exit_price - open_trade['entry']) * open_trade['size'] if open_trade['direction'] == 'LONG' else (open_trade['entry'] - exit_price) * open_trade['size']
     fee = open_trade['fee'] + open_trade['slippage']
     pnl = gross - fee
+
+    final_exit_reason = exit_reason
+    if exit_reason == 'TP' and pnl <= 0:
+        final_exit_reason = 'TP_NET_NEGATIVE'
+
     state.balance += pnl
     state.session_peak_balance = max(state.session_peak_balance, state.balance)
     state.trades_today += 1
@@ -87,9 +92,11 @@ def close_trade(state, open_trade, exit_price, exit_reason, closed_at):
         'entry_price': open_trade['entry'],
         'exit_price': exit_price,
         'size': open_trade['size'],
+        'gross': gross,
         'pnl': pnl,
         'fee': fee,
-        'exit_reason': exit_reason,
+        'exit_reason': final_exit_reason,
+        'trigger_exit_reason': exit_reason,
         'balance_after': state.balance,
         'score': open_trade.get('score'),
         'stretch': open_trade.get('stretch'),

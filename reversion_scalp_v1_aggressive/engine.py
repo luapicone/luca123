@@ -37,11 +37,16 @@ def select_signals(state, symbol_to_candles_5m, symbol_to_candles_15m, now_ts, m
         if len(selected) >= max_new_signals:
             break
         cooldown_key = f"{signal['symbol']}|{signal['direction']}"
+        signal_candle_ts = signal.get('signal_candle_ts')
         cooldown_until = state.symbol_cooldowns.get(cooldown_key)
+        last_signal_candle_ts = state.last_signal_candles.get(cooldown_key)
         same_symbol_open = sum(1 for t in state.open_trades if t['symbol'] == signal['symbol'])
         same_symbol_selected = sum(1 for t in selected if t['symbol'] == signal['symbol'])
         if same_symbol_open + same_symbol_selected >= MAX_CONCURRENT_TRADES_PER_SYMBOL:
             diagnostics[signal['symbol']] = {'rejected': 'max_open_trades_per_symbol'}
+            continue
+        if signal_candle_ts is not None and last_signal_candle_ts == signal_candle_ts:
+            diagnostics[signal['symbol']] = {'rejected': 'signal_candle_already_processed'}
             continue
         if cooldown_until and now_ts < cooldown_until:
             diagnostics[signal['symbol']] = {'rejected': 'symbol_direction_cooldown'}

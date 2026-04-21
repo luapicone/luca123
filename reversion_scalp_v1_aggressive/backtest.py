@@ -143,6 +143,7 @@ def run_backtest(days=30, symbols=None):
             consecutive_losses=state.consecutive_losses,
             pause_until=state.pause_until,
             symbol_cooldowns=state.symbol_cooldowns,
+            last_signal_candles=state.last_signal_candles,
             open_trades=state.open_trades + [p['trade'] for p in pending_trades],
         )
         selected_signals, diagnostics = select_signals(
@@ -153,6 +154,10 @@ def run_backtest(days=30, symbols=None):
             max_new_signals=max(0, MAX_CONCURRENT_TRADES - len(state.open_trades) - len(pending_trades)),
         )
         for signal in selected_signals:
+            cooldown_key = f"{signal['symbol']}|{signal['direction']}"
+            signal_candle_ts = signal.get('signal_candle_ts')
+            if signal_candle_ts is not None:
+                state.last_signal_candles[cooldown_key] = signal_candle_ts
             trade = open_trade_from_signal(signal, state.balance, opened_at=timestamp)
             if not trade:
                 diagnostics[signal['symbol']] = {'rejected': 'trade_build_failed'}

@@ -10,4 +10,5 @@ class BotState:
     consecutive_losses: int = 0
     pause_until: float | None = None
     symbol_cooldowns: dict = field(default_factory=dict)
+    last_signal_candles: dict = field(default_factory=dict)
     open_trades: list = field(default_factory=list)

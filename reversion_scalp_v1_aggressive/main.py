@@ -7,6 +7,7 @@ from reversion_scalp_v1_aggressive.live_config import load_live_settings, valida
 from reversion_scalp_v1_aggressive.discord_bot import notify_open, notify_close, notify_risk_blocked
 from reversion_scalp_v1_aggressive.config import (
     EXCHANGE_ID, INITIAL_BALANCE, LOG_PATH, SYMBOLS, TF_CONTEXT, TF_ENTRY,
+    TF_MANAGE,
     SYMBOL_COOLDOWN_MINUTES, SYMBOL_REPEAT_LOSS_COOLDOWN_MINUTES,
     MAX_CONCURRENT_TRADES, MAX_CONCURRENT_TRADES_PER_SYMBOL,
     MANAGE_INTERVAL_S, SCAN_INTERVAL_S, MAX_CLOSED_TRADES_PER_RUN,
@@ -22,6 +23,12 @@ from reversion_scalp_v1_aggressive.state import BotState
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', handlers=[logging.FileHandler(LOG_PATH), logging.StreamHandler()])
 
+TIMEFRAME_MS = {
+    '1m': 60 * 1000,
+    '5m': 5 * 60 * 1000,
+    '15m': 15 * 60 * 1000,
+}
+
 settings = load_live_settings()
 ok, reason = validate_live_settings(settings)
 
@@ -34,6 +41,23 @@ if settings.enabled:
     logging.warning("=" * 60)
 else:
     logging.info("PAPER MODE")
+
+
+def timeframe_to_ms(timeframe):
+    ms = TIMEFRAME_MS.get(timeframe)
+    if ms is None:
+        raise ValueError(f'unsupported timeframe: {timeframe}')
+    return ms
+
+
+def floor_time_ms(ts_ms, timeframe_ms):
+    return ts_ms - (ts_ms % timeframe_ms)
+
+
+def filter_closed_candles(candles, timeframe, now_ms=None):
+    timeframe_ms = timeframe_to_ms(timeframe)
+    current_ms = now_ms if now_ms is not None else int(datetime.now(timezone.utc).timestamp() * 1000)
+    return [c for c in candles if (c[0] + timeframe_ms) <= current_ms]
 
 
 def create_exchange(settings):
@@ -138,9 +162,10 @@ def _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, 
     return True  # cerrado correctamente
 
 
-def _manage_trades(state, symbol_to_candles_5m, exchange, guard, manage_cycle):
+def _manage_trades(state, symbol_to_manage_candles, symbol_to_candles_5m, exchange, guard, manage_cycle):
     """Gestiona todas las posiciones abiertas con los candles disponibles."""
     remaining = []
+    manage_tf_ms = timeframe_to_ms(TF_MANAGE)
     for open_trade in state.open_trades:
         if open_trade.get('manual_intervention_required'):
             logging.critical(
@@ -150,28 +175,46 @@ def _manage_trades(state, symbol_to_candles_5m, exchange, guard, manage_cycle):
             remaining.append(open_trade)
             continue
 
-        candles = symbol_to_candles_5m.get(open_trade['symbol'])
-        if not candles:
+        manage_candles = symbol_to_manage_candles.get(open_trade['symbol']) or []
+        candles_5m = symbol_to_candles_5m.get(open_trade['symbol']) or []
+        if not manage_candles:
             remaining.append(open_trade)
             continue
 
-        # Resetear el dedup de candle_ts para re-evaluar con datos frescos cada ciclo
-        open_trade['last_processed_candle_ts'] = None
+        opened_at_ms = int(open_trade['opened_at'].timestamp() * 1000)
+        entry_manage_candle_ts = open_trade.get('entry_manage_candle_ts')
+        if entry_manage_candle_ts is None:
+            entry_manage_candle_ts = floor_time_ms(opened_at_ms, manage_tf_ms)
+            open_trade['entry_manage_candle_ts'] = entry_manage_candle_ts
 
-        candle = candles[-1]
-        current_price = candle[4]
-        minutes_elapsed = (datetime.now(timezone.utc) - open_trade['opened_at']).total_seconds() / 60.0
-        rsi_5m = compute_rsi_from_candles(candles)
-        exit_price, exit_reason, closed = manage_trade_step(open_trade, candle, minutes_elapsed, rsi_5m)
-        logging.info('MANAGE[%s] %s %s price=%.6f sl=%.6f tp=%.6f reason=%s min=%.2f',
-                     manage_cycle, open_trade['symbol'], open_trade['direction'],
-                     current_price, open_trade['sl'], open_trade['tp'], exit_reason, minutes_elapsed)
+        lower_bound = open_trade.get('last_processed_candle_ts')
+        if lower_bound is None:
+            lower_bound = entry_manage_candle_ts
 
-        if closed:
-            ok = _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, exchange, guard)
-            if not ok:
-                remaining.append(open_trade)
-        else:
+        new_manage_candles = [c for c in manage_candles if c[0] > lower_bound]
+        if not new_manage_candles:
+            remaining.append(open_trade)
+            continue
+
+        rsi_5m = compute_rsi_from_candles(candles_5m) if candles_5m else None
+        requeue_trade = True
+
+        for candle in new_manage_candles:
+            current_price = candle[4]
+            candle_closed_at = datetime.fromtimestamp((candle[0] + manage_tf_ms) / 1000, tz=timezone.utc)
+            minutes_elapsed = (candle_closed_at - open_trade['opened_at']).total_seconds() / 60.0
+            exit_price, exit_reason, closed = manage_trade_step(open_trade, candle, minutes_elapsed, rsi_5m)
+            logging.info('MANAGE[%s] %s %s candle_ts=%s price=%.6f sl=%.6f tp=%.6f reason=%s min=%.2f',
+                         manage_cycle, open_trade['symbol'], open_trade['direction'],
+                         candle[0], current_price, open_trade['sl'], open_trade['tp'], exit_reason, minutes_elapsed)
+
+            if closed:
+                ok = _process_close(state, open_trade, exit_price, exit_reason, minutes_elapsed, exchange, guard)
+                if ok:
+                    requeue_trade = False
+                break
+
+        if requeue_trade:
             remaining.append(open_trade)
 
     state.open_trades = remaining
@@ -203,18 +246,22 @@ def main():
         # Fetcha OHLCV solo de los símbolos con trades abiertos (~1-2 requests)
         # ----------------------------------------------------------------
         open_symbols = {t['symbol'] for t in state.open_trades if not t.get('manual_intervention_required')}
+        symbol_to_manage_candles_fast = {}
         symbol_to_candles_5m_fast = {}
 
         for symbol in open_symbols:
             try:
-                symbol_to_candles_5m_fast[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=20)
+                manage_raw = fetch_ohlcv_safe(exchange, symbol, TF_MANAGE, limit=21)
+                candles_5m_raw = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=121)
+                symbol_to_manage_candles_fast[symbol] = filter_closed_candles(manage_raw, TF_MANAGE)
+                symbol_to_candles_5m_fast[symbol] = filter_closed_candles(candles_5m_raw, TF_ENTRY)[-120:]
             except Exception as exc:
                 logging.warning('fast_fetch failed %s: %s', symbol, exc)
                 guard.record_error('fast_fetch_ohlcv', symbol, exc)
                 cycle_had_errors = True
 
         if state.open_trades:
-            _manage_trades(state, symbol_to_candles_5m_fast, exchange, guard, manage_cycle)
+            _manage_trades(state, symbol_to_manage_candles_fast, symbol_to_candles_5m_fast, exchange, guard, manage_cycle)
             if MAX_CLOSED_TRADES_PER_RUN > 0 and state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
                 logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
                 return
@@ -244,8 +291,14 @@ def main():
             symbol_to_candles_15m = {}
             for symbol in SYMBOLS:
                 try:
-                    symbol_to_candles_5m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=120)
-                    symbol_to_candles_15m[symbol] = fetch_ohlcv_safe(exchange, symbol, TF_CONTEXT, limit=120)
+                    raw_5m = fetch_ohlcv_safe(exchange, symbol, TF_ENTRY, limit=121)
+                    raw_15m = fetch_ohlcv_safe(exchange, symbol, TF_CONTEXT, limit=121)
+                    closed_5m = filter_closed_candles(raw_5m, TF_ENTRY)
+                    closed_15m = filter_closed_candles(raw_15m, TF_CONTEXT)
+                    if closed_5m:
+                        symbol_to_candles_5m[symbol] = closed_5m[-120:]
+                    if closed_15m:
+                        symbol_to_candles_15m[symbol] = closed_15m[-120:]
                 except Exception as exc:
                     logging.warning('scan fetch failed %s: %s', symbol, exc)
                     guard.record_error('fetch_ohlcv', symbol, exc)
@@ -261,6 +314,10 @@ def main():
                 )
                 if selected_signals:
                     for signal in selected_signals:
+                        cooldown_key = f"{signal['symbol']}|{signal['direction']}"
+                        signal_candle_ts = signal.get('signal_candle_ts')
+                        if signal_candle_ts is not None:
+                            state.last_signal_candles[cooldown_key] = signal_candle_ts
                         if settings.enabled:
                             trade = live_open_trade(exchange, signal, settings)
                             if trade:
@@ -292,6 +349,7 @@ def main():
 
                         if trade:
                             trade['opened_at'] = datetime.now(timezone.utc)
+                            trade['entry_manage_candle_ts'] = floor_time_ms(int(trade['opened_at'].timestamp() * 1000), timeframe_to_ms(TF_MANAGE))
                             state.open_trades.append(trade)
                             logging.info('OPEN %s %s entry=%s sl=%s tp=%s size=%s score=%.3f stretch=%.6f zscore=%.3f',
                                          trade['symbol'], trade['direction'], trade['entry'], trade['sl'],
@@ -300,8 +358,19 @@ def main():
                 else:
                     logging.info('scan_cycle_no_signal scan=%s symbols_ready=%s', scan_cycle, len(symbol_to_candles_5m))
 
-            # También correr manage con los candles frescos del scan
-            _manage_trades(state, symbol_to_candles_5m, exchange, guard, manage_cycle)
+            # También correr manage con candles 1m cerrados, para no esperar al próximo ciclo rápido
+            symbol_to_manage_candles_scan = {}
+            manage_open_symbols = {t['symbol'] for t in state.open_trades if not t.get('manual_intervention_required')}
+            for symbol in manage_open_symbols:
+                try:
+                    manage_raw = fetch_ohlcv_safe(exchange, symbol, TF_MANAGE, limit=21)
+                    symbol_to_manage_candles_scan[symbol] = filter_closed_candles(manage_raw, TF_MANAGE)
+                except Exception as exc:
+                    logging.warning('scan manage fetch failed %s: %s', symbol, exc)
+                    guard.record_error('scan_manage_fetch_ohlcv', symbol, exc)
+                    cycle_had_errors = True
+
+            _manage_trades(state, symbol_to_manage_candles_scan, symbol_to_candles_5m, exchange, guard, manage_cycle)
             if MAX_CLOSED_TRADES_PER_RUN > 0 and state.closed_trades_this_run >= MAX_CLOSED_TRADES_PER_RUN and not state.open_trades:
                 logging.warning('MAX_CLOSED_TRADES_PER_RUN reached (%s). Stopping bot.', MAX_CLOSED_TRADES_PER_RUN)
                 return

@@ -96,6 +96,7 @@ def detect_reversion_signal(candles_5m, candles_15m):
         'entry': current,
         'sl': sl,
         'tp': tp,
+        'signal_candle_ts': current_candle[0],
         'atr': atr_value,
         'score': score,
         'stretch': stretch,

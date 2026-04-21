@@ -78,17 +78,20 @@ def _confirm_position_closed(exchange, symbol, retries=3, delay_s=1.0):
     for attempt in range(retries):
         try:
             positions = exchange.fetch_positions([symbol])
+            position_still_open = False
             for pos in positions:
                 size = float(pos.get('contracts') or pos.get('amount') or 0)
                 if pos.get('symbol') == symbol and size != 0:
+                    position_still_open = True
                     logging.warning(
                         '_confirm_position_closed: posición todavía abierta %s size=%s attempt=%s',
                         symbol, size, attempt + 1
                     )
-                    if attempt < retries - 1:
-                        time.sleep(delay_s)
-                    return False
-            return True
+                    break
+            if not position_still_open:
+                return True
+            if attempt < retries - 1:
+                time.sleep(delay_s)
         except Exception as exc:
             logging.warning('_confirm_position_closed fetch failed %s attempt=%s: %s',
                             symbol, attempt + 1, exc)
@@ -96,6 +99,26 @@ def _confirm_position_closed(exchange, symbol, retries=3, delay_s=1.0):
                 time.sleep(delay_s)
     # Si todos los fetches fallaron, no podemos confirmar — asumimos no cerrado (más seguro)
     return False
+
+
+def _shift_levels_to_fill(exchange, symbol, direction, signal_entry, sl, tp, fill_price):
+    sl_offset = abs(signal_entry - sl)
+    tp_offset = abs(signal_entry - tp)
+
+    if direction == 'LONG':
+        shifted_sl = fill_price - sl_offset
+        shifted_tp = fill_price + tp_offset
+    else:
+        shifted_sl = fill_price + sl_offset
+        shifted_tp = fill_price - tp_offset
+
+    try:
+        shifted_sl = float(exchange.price_to_precision(symbol, shifted_sl))
+        shifted_tp = float(exchange.price_to_precision(symbol, shifted_tp))
+    except Exception as exc:
+        logging.warning('_shift_levels_to_fill precision fallback %s: %s', symbol, exc)
+
+    return shifted_sl, shifted_tp
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +160,7 @@ def live_open_trade(exchange, signal, settings):
 
         # Confirmar fill real desde exchange — no confiar solo en la respuesta inmediata
         fill_price, fill_size = _confirm_fill(exchange, order_id, symbol, expected_size=size)
+        live_sl, live_tp = _shift_levels_to_fill(exchange, symbol, direction, signal['entry'], sl, tp, fill_price)
 
         from reversion_scalp_v1_aggressive.config import FEE_PCT, SLIPPAGE_PCT
         fee  = fill_size * fill_price * FEE_PCT * 2
@@ -146,8 +170,8 @@ def live_open_trade(exchange, signal, settings):
         trade.update({
             'entry':                    fill_price,
             'size':                     fill_size,
-            'sl':                       sl,
-            'tp':                       tp,
+            'sl':                       live_sl,
+            'tp':                       live_tp,
             'fee':                      fee,
             'slippage':                 slip,
             'live_order_id':            order_id,
@@ -164,8 +188,8 @@ def live_open_trade(exchange, signal, settings):
             'last_replayed_minute_ts':  None,
         })
 
-        logging.info('live_open_trade confirmed symbol=%s fill_price=%.6f fill_size=%s',
-                     symbol, fill_price, fill_size)
+        logging.info('live_open_trade confirmed symbol=%s fill_price=%.6f fill_size=%s live_sl=%s live_tp=%s',
+                     symbol, fill_price, fill_size, live_sl, live_tp)
         return trade
 
     except ccxt.InsufficientFunds as exc:
@@ -292,14 +316,16 @@ def live_close_trade(exchange, trade, exit_reason):
 
         # Confirmar fill real
         fill_price, fill_size = _confirm_fill(exchange, order_id, symbol, expected_size=size)
+        if abs(fill_size - size) > max(1e-9, size * 0.01):
+            raise RuntimeError(
+                f'close fill_size mismatch for {symbol}: filled={fill_size} expected={size}'
+            )
 
         # Verificar que la posición quedó efectivamente cerrada
-        position_closed = _confirm_position_closed(exchange, symbol)
+        position_closed = _confirm_position_closed(exchange, symbol, retries=5, delay_s=1.0)
         if not position_closed:
-            logging.warning(
-                'live_close_trade: fill confirmado pero posición todavía visible en exchange %s — '
-                'puede ser latencia, monitorear',
-                symbol
+            raise RuntimeError(
+                f'close not fully confirmed for {symbol}: position still visible after market close'
             )
 
         logging.info('live_close_trade confirmed symbol=%s fill=%.6f reason=%s',
